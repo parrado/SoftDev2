@@ -1,0 +1,67 @@
+LOADADDR  = 0x200000
+EE_TARGET=payload
+EE_BIN = $(EE_TARGET).elf
+EE_PACKED_RAW = $(EE_TARGET).bin
+EE_BIN_STRIPPED = $(EE_TARGET)-stripped.elf
+
+EE_BIN_RAW = $(EE_TARGET).bin
+EE_OBJS = main.o  pad.o  ps2_asm.o   timer.o loader_elf.o  $(EE_IOP_OBJS)
+EE_IOP_OBJS = IOMANX_irx.o FILEXIO_irx.o SIO2MAN_irx.o PADMAN_irx.o DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o
+
+EE_LDFLAGS = -L$(PS2SDK)/ports/lib -Wl,--gc-sections -nostartfiles -Wl,-Ttext -Wl,$(LOADADDR)
+EE_LIBS = -ldebug -lc -lkernel -lpatches -lfileXio   -lm -lpadx
+EE_INCS= -I$(GSKIT)/include -I$(PS2SDK)/ports/include
+EE_CFLAGS=-Os -ffunction-sections -fdata-sections -DNEWLIB_PORT_AWARE
+
+
+all:
+	$(MAKE) $(EE_BIN_PACKED) $(EE_BIN_RAW)
+	
+
+
+
+clean:
+	rm -f *.elf *.ELF *.irx *.o *.s *.bin 
+
+DEV9_irx.c: $(PS2SDK)/iop/irx/ps2dev9.irx
+	bin2c $(PS2SDK)/iop/irx/ps2dev9.irx DEV9_irx.c DEV9_irx
+
+IOMANX_irx.c: $(PS2SDK)/iop/irx/iomanX.irx
+	bin2c $(PS2SDK)/iop/irx/iomanX.irx IOMANX_irx.c IOMANX_irx
+
+FILEXIO_irx.c: $(PS2SDK)/iop/irx/fileXio.irx
+	bin2c $(PS2SDK)/iop/irx/fileXio.irx FILEXIO_irx.c FILEXIO_irx
+
+SIO2MAN_irx.c: $(PS2SDK)/iop/irx/freesio2.irx
+	bin2c $(PS2SDK)/iop/irx/freesio2.irx SIO2MAN_irx.c SIO2MAN_irx
+
+PADMAN_irx.c: $(PS2SDK)/iop/irx/freepad.irx
+	bin2c $(PS2SDK)/iop/irx/freepad.irx PADMAN_irx.c PADMAN_irx
+
+
+ATAD_irx.c: $(PS2SDK)/iop/irx/ps2atad.irx
+	bin2c $(PS2SDK)/iop/irx/ps2atad.irx ATAD_irx.c ATAD_irx
+
+HDD_irx.c: $(PS2SDK)/iop/irx/ps2hdd.irx
+	bin2c $(PS2SDK)/iop/irx/ps2hdd.irx HDD_irx.c HDD_irx
+
+PFS_irx.c: $(PS2SDK)/iop/irx/ps2fs.irx
+	bin2c $(PS2SDK)/iop/irx/ps2fs.irx PFS_irx.c PFS_irx
+
+loader_elf.s: 
+	$(MAKE) -C ../loader-old/
+	bin2s ../loader-old/loader.elf loader_elf.s loader_elf	
+
+
+
+$(EE_BIN_STRIPPED): $(EE_BIN)
+	$(EE_STRIP) -s -R .comment -R .gnu.version --strip-unneeded -o $@ $<
+
+$(EE_PACKED_RAW): $(EE_BIN_STRIPPED)
+	../ps2-packer-bin/ps2-packer-lite -v $< $@
+	
+
+
+include $(PS2SDK)/samples/Makefile.pref
+include $(PS2SDK)/samples/Makefile.eeglobal
+
