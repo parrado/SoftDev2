@@ -297,6 +297,7 @@ int main(int argc, char *argv[])
 	int lastKey = 0;
 	int keyStatus;
 	int isEarlyJap = 0;
+	char *argv[2];
 
 	InitPS2();
 	
@@ -355,30 +356,32 @@ int main(int argc, char *argv[])
 	if (lastKey & PAD_CIRCLE)
 	{
 		if (file_exists("pfs0:ULE.ELF"))
-			LoadElf("pfs0:ULE.ELF", "pfs0:");
+			LoadElf("pfs0:ULE.ELF", "hdd0:PP.SOFTDEV2.APPS");
 
 		
 
 		if (file_exists("pfs0:OPNPS2LD.ELF"))
-			LoadElf("pfs0:OPNPS2LD.ELF", "pfs0:");
+			LoadElf("pfs0:OPNPS2LD.ELF", "hdd0:PP.SOFTDEV2.APPS");
 
 	}
 	else
 	{
 		if (file_exists("pfs0:OPNPS2LD.ELF"))
-			LoadElf("pfs0:OPNPS2LD.ELF", "pfs0:");
+			LoadElf("pfs0:OPNPS2LD.ELF", "hdd0:PP.SOFTDEV2.APPS");
 
 		
 
 		if (file_exists("pfs0:ULE.ELF"))
-			LoadElf("pfs0:ULE.ELF", "pfs0:");
+			LoadElf("pfs0:ULE.ELF", "hdd0:PP.SOFTDEV2.APPS");
 
 	}
 
-	__asm__ __volatile__(
-		"	li $3, 0x04;"
-		"	syscall;"
-		"	nop;");
+
+	argv[0]="BootBrowser";
+	argv[1]="SkipHdd";
+
+
+	LoadExecPS2("rom0:OSDSYS", 2, argv);
 	return 0;
 
 	
