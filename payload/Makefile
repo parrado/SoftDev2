@@ -21,6 +21,7 @@ all:
 
 
 clean:
+	$(MAKE) -C ../loader-old/ clean
 	rm -f *.elf *.ELF *.irx *.o *.s *.bin 
 
 DEV9_irx.c: $(PS2SDK)/iop/irx/ps2dev9.irx

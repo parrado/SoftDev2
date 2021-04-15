@@ -6,12 +6,10 @@
 #include <loadfile.h>
 #include <stdio.h>
 #include <unistd.h>
-//#include <input.h>
 #include <time.h>
 #include <string.h>
 #include <libcdvd.h>
 #include <iopcontrol.h>
-//#include <iopcontrol_special.h>
 #include <iopheap.h>
 #include <kernel.h>
 #include <libcdvd.h>
@@ -36,9 +34,6 @@
 
 #include "stdint.h"
 
-
-
-
 #define NTSC 2
 #define PAL 3
 
@@ -52,7 +47,6 @@
 
 extern u8 loader_elf[];
 extern int size_loader_elf;
-
 
 extern unsigned char IOMANX_irx[];
 extern unsigned int size_IOMANX_irx;
@@ -79,7 +73,7 @@ extern unsigned char PFS_irx[];
 extern unsigned int size_PFS_irx;
 
 int VMode = NTSC;
-extern void*      _gp;
+extern void *_gp;
 
 //------------------------------
 typedef struct
@@ -132,8 +126,6 @@ static void SystemInitThread(struct SystemInitParams *SystemInitParams)
 		SifExecModuleBuffer(PFS_irx, size_PFS_irx, sizeof(PFS_args), PFS_args, NULL);
 	}
 
-	
-
 	SifExitIopHeap();
 	SifLoadFileExit();
 
@@ -170,10 +162,6 @@ char romver_region_char[1];
 char ROMVersionNumStr[5];
 
 u32 bios_version = 0;
-
-
-
-
 
 void ResetIOP()
 {
@@ -227,13 +215,11 @@ void InitPS2()
 	SysCreateThread(SystemInitThread, SysInitThreadStack, SYSTEM_INIT_THREAD_STACK_SIZE, &InitThreadParams, 0x2);
 
 	WaitSema(InitThreadParams.InitCompleteSema);
-
-
-	
 }
 
 void LoadElf(char *filename, char *party)
 {
+
 	u8 *boot_elf;
 	elf_header_t *eh;
 	elf_pheader_t *eph;
@@ -241,8 +227,27 @@ void LoadElf(char *filename, char *party)
 	int i;
 	char *argv[2], bootpath[256];
 
-	argv[0] = filename;
-	argv[1] = filename;
+	if ((!strncmp(party, "hdd0:", 5)) && (!strncmp(filename, "pfs0:", 5)))
+	{
+		//If a path to a file on PFS is specified, change it to the standard format.
+		//hdd0:partition:pfs:path/to/file
+		if (strncmp(filename, "pfs0:", 5) == 0)
+		{
+			sprintf(bootpath, "%s:pfs:%s", party, &filename[5]);
+		}
+		else
+		{
+			sprintf(bootpath, "%s:%s", party, filename);
+		}
+
+		argv[0] = filename;
+		argv[1] = bootpath;
+	}
+	else
+	{
+		argv[0] = filename;
+		argv[1] = filename;
+	}
 
 	/* NB: LOADER.ELF is embedded  */
 	boot_elf = (u8 *)loader_elf;
@@ -287,21 +292,23 @@ int file_exists(char filepath[])
 	return 1;
 }
 
-
 int main(int argc, char *argv[])
 {
 
-	
 	int x, r;
 	u64 tstart;
 	int lastKey = 0;
 	int keyStatus;
 	int isEarlyJap = 0;
 	char *argv[2];
+	char boot_path[256];
+
+	char *party = "hdd0:PP.SOFTDEV2.APPS";
+
+	argv[0] = "BootBrowser";
+	argv[1] = "SkipHdd";
 
 	InitPS2();
-	
-
 
 	int fdnr;
 	if ((fdnr = open("rom0:ROMVER", O_RDONLY)) > 0)
@@ -320,69 +327,47 @@ int main(int argc, char *argv[])
 	if ((romver_region_char[0] == 'J') && (bios_version <= 0x120))
 		isEarlyJap = 1;
 
-	
-
-	
-
-
-	int result = fileXioMount("pfs0:", "hdd0:PP.SOFTDEV2.APPS", FIO_MT_RDWR);
-
-
-	
-	
-
-	
-	TimerInit();
-	tstart = Timer();
-
-	//Stores last key during DELAY msec
-	while (Timer() <= (tstart + DELAY))
+	if (fileXioMount("pfs0:", party, FIO_MT_RDONLY) == 0)
 	{
-	
-			keyStatus  = ReadCombinedPadStatus();
-			if(keyStatus)
-				lastKey=keyStatus;
+
+		TimerInit();
+		tstart = Timer();
+
+		//Stores last key during DELAY msec
+		while (Timer() <= (tstart + DELAY))
+		{
+
+			keyStatus = ReadCombinedPadStatus();
+			if (keyStatus)
+				lastKey = keyStatus;
+		}
+		TimerEnd();
+
+		//Deinits pad
+		if (!isEarlyJap)
+		{
+			PadDeinitPads();
+		}
+
+		if (lastKey & PAD_CIRCLE)
+
+		{
+			if (file_exists("pfs0:ULE.ELF"))
+				LoadElf("pfs0:ULE.ELF", party);
+
+			if (file_exists("pfs0:OPNPS2LD.ELF"))
+				LoadElf("pfs0:OPNPS2LD.ELF", party);
+		}
+		else
+		{
+			if (file_exists("pfs0:OPNPS2LD.ELF"))
+				LoadElf("pfs0:OPNPS2LD.ELF", party);
+
+			if (file_exists("pfs0:ULE.ELF"))
+				LoadElf("pfs0:ULE.ELF", party);
+		}
 	}
-	TimerEnd();
-
-	
-
-	//Deinits pad
-	if (!isEarlyJap)
-	{
-	PadDeinitPads();
-	}
-
-	if (lastKey & PAD_CIRCLE)
-	{
-		if (file_exists("pfs0:ULE.ELF"))
-			LoadElf("pfs0:ULE.ELF", "hdd0:PP.SOFTDEV2.APPS");
-
-		
-
-		if (file_exists("pfs0:OPNPS2LD.ELF"))
-			LoadElf("pfs0:OPNPS2LD.ELF", "hdd0:PP.SOFTDEV2.APPS");
-
-	}
-	else
-	{
-		if (file_exists("pfs0:OPNPS2LD.ELF"))
-			LoadElf("pfs0:OPNPS2LD.ELF", "hdd0:PP.SOFTDEV2.APPS");
-
-		
-
-		if (file_exists("pfs0:ULE.ELF"))
-			LoadElf("pfs0:ULE.ELF", "hdd0:PP.SOFTDEV2.APPS");
-
-	}
-
-
-	argv[0]="BootBrowser";
-	argv[1]="SkipHdd";
-
 
 	LoadExecPS2("rom0:OSDSYS", 2, argv);
 	return 0;
-
-	
 }
