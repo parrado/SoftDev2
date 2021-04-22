@@ -292,6 +292,154 @@ int file_exists(char filepath[])
 	return 1;
 }
 
+static u32 execps2_code[] = {
+	0x24030007, // li v1, 7
+	0x0000000c, // syscall
+	0x03e00008, // jr ra
+	0x00000000	// nop
+};
+static u32 execps2_mask[] = {
+	0xffffffff,
+	0xffffffff,
+	0xffffffff,
+	0xffffffff};
+
+//=========================================================================
+//  SkipHdd patch for v3, v4 (those not supporting "SkipHdd" arg)
+
+static u32 pattern10[] = {
+	// Code near MC Update & HDD load
+	0x0c000000, // jal 	 CheckMcUpdate
+	0x0220282d, // daddu a1, s1, zero
+	0x3c04002a, // lui	 a0, 0x002a         #SkipHdd jump must be here
+	0x0000282d, // daddu a1, zero, zero 	#arg1: 0
+	0x24840000, // addiu a0, a0, 0xXXXX  	#arg0: "rom0:ATAD"
+	0x0c000000, // jal 	 LoadModule
+	0x0000302d, // daduu a2, zero, zero		#arg2: 0
+	0x04400000	// bltz  v0, Exit_HddLoad
+};
+static u32 pattern10_mask[] = {
+	0xfc000000,
+	0xffffffff,
+	0xffffffff,
+	0xffffffff,
+	0xffff0000,
+	0xfc000000,
+	0xffffffff,
+	0xffff0000};
+
+//--------------------------------------------------------------
+u8 *find_bytes_with_mask(u8 *buf, u32 bufsize, u8 *bytes, u8 *mask, u32 len)
+{
+	u32 i, j;
+
+	for (i = 0; i < bufsize - len; i++)
+	{
+		for (j = 0; j < len; j++)
+		{
+			if ((buf[i + j] & mask[j]) != bytes[j])
+				break;
+		}
+		if (j == len)
+			return &buf[i];
+	}
+	return NULL;
+}
+//--------------------------------------------------------------
+u8 *find_string(const u8 *string, u8 *buf, u32 bufsize)
+{
+	u32 i;
+	const u8 *s, *p;
+
+	for (i = 0; i < bufsize; i++)
+	{
+		s = string;
+		for (p = buf + i; *s && *s == *p; s++, p++)
+			;
+		if (!*s)
+			return (buf + i);
+	}
+	return NULL;
+}
+
+void patch_skip_hdd(u8 *osd)
+{
+	u8 *ptr;
+	u32 addr;
+
+	// Search code near MC Update & HDD load
+	ptr = find_bytes_with_mask(osd, 0x00100000, (u8 *)pattern10, (u8 *)pattern10_mask, sizeof(pattern10));
+	if (!ptr)
+		return;
+	addr = (u32)ptr;
+
+	// Place "beq zero, zero, Exit_HddLoad" just after CheckMcUpdate() call
+	_sw(0x10000000 + ((signed short)(_lw(addr + 28) & 0xffff) + 5), addr + 8);
+}
+
+void patch_and_execute_osdsys(void *epc, void *gp)
+{
+	
+
+	int n = 0;
+	char *args[5], *ptr;
+	
+	args[n++] = "rom0:";
+	args[n++] = "BootBrowser"; // triggers BootBrowser to reach internal mc browser
+	args[n++] = "SkipMc"; // Skip mc?:/BREXEC-SYSTEM/osdxxx.elf update on v5 and above
+
+	if (find_string("SkipHdd", (u8 *)epc, 0x100000)) // triggers SkipHdd arg
+		args[n++] = "SkipHdd";						 // Skip Hddload on v5 and above
+	else
+		patch_skip_hdd((u8 *)epc); // SkipHdd patch for v3 & v4
+
+	// To avoid loop in OSDSYS (Handle those models not supporting SkipMc arg) :
+	while ((ptr = find_string("EXEC-SYSTEM", (u8 *)epc, 0x100000)))
+		strncpy(ptr, "EXEC-OSDSYS", 11);
+
+	SifExitRpc();
+	FlushCache(0);
+	FlushCache(2);
+
+	ExecPS2(epc, gp, n, args);
+}
+
+//--------------------------------------------------------------
+void launch_osdsys(void) // Run OSDSYS
+{
+	u8 *ptr;
+	t_ExecData exec;
+	int i, j, r;
+
+	SifLoadElf("rom0:OSDSYS", &exec);
+
+	if (exec.epc > 0)
+	{
+
+		// Find the ExecPS2 function in the unpacker starting from 0x100000.
+		ptr = find_bytes_with_mask((u8 *)0x100000, 0x1000, (u8 *)execps2_code, (u8 *)execps2_mask, sizeof(execps2_code));
+
+		// If found replace it with a call to our patch_and_execute_osdsys() function.
+		if (ptr)
+		{
+			u32 instr = 0x0c000000;
+			instr |= ((u32)patch_and_execute_osdsys >> 2);
+			*(u32 *)ptr = instr;
+			*(u32 *)&ptr[4] = 0;
+		}
+
+	
+
+		SifExitRpc();
+		FlushCache(0);
+		FlushCache(2);
+
+		// Execute the osd unpacker. If the above patching was successful it will
+		// call the patch_and_execute_osdsys() function after unpacking.
+		ExecPS2((void *)exec.epc, (void *)exec.gp, 0, NULL);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -310,6 +458,7 @@ int main(int argc, char *argv[])
 
 	InitPS2();
 
+	
 	int fdnr;
 	if ((fdnr = open("rom0:ROMVER", O_RDONLY)) > 0)
 	{ // Reading ROMVER
@@ -358,16 +507,21 @@ int main(int argc, char *argv[])
 			if (file_exists("pfs0:OPNPS2LD.ELF"))
 				LoadElf("pfs0:OPNPS2LD.ELF", party);
 		}
-		else
-		{
-			if (file_exists("pfs0:OPNPS2LD.ELF"))
-				LoadElf("pfs0:OPNPS2LD.ELF", party);
 
-			if (file_exists("pfs0:ULE.ELF"))
-				LoadElf("pfs0:ULE.ELF", party);
+		if (lastKey & PAD_TRIANGLE)
+		{
+			fileXioUmount("pfs0:");
+			launch_osdsys();
 		}
+
+		if (file_exists("pfs0:OPNPS2LD.ELF"))
+			LoadElf("pfs0:OPNPS2LD.ELF", party);
+
+		if (file_exists("pfs0:ULE.ELF"))
+			LoadElf("pfs0:ULE.ELF", party);
 	}
 
-	LoadExecPS2("rom0:OSDSYS", 2, argv);
+	launch_osdsys();
+
 	return 0;
 }
