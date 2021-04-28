@@ -32,12 +32,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "stdint.h"
+//#include "stdint.h"
 
 #define NTSC 2
 #define PAL 3
 
-#define DELAY 0
+#define DELAY 100
 
 #define SYSTEM_INIT_THREAD_STACK_SIZE 0x1000
 
@@ -448,15 +448,17 @@ int main(int argc, char *argv[])
 	int lastKey = 0;
 	int keyStatus;
 	int isEarlyJap = 0;
-	char *argv[2];
+	
 	char boot_path[256];
 
 	char *party = "hdd0:PP.SOFTDEV2.APPS";
 
-	argv[0] = "BootBrowser";
-	argv[1] = "SkipHdd";
 
 	InitPS2();
+	
+	
+		
+  
 
 	
 	int fdnr;
@@ -483,13 +485,15 @@ int main(int argc, char *argv[])
 		tstart = Timer();
 
 		//Stores last key during DELAY msec
-		while (Timer() <= (tstart + DELAY))
+		do
 		{
 
 			keyStatus = ReadCombinedPadStatus();
 			if (keyStatus)
 				lastKey = keyStatus;
-		}
+				
+		  		
+		}while (Timer() <= (tstart + DELAY));
 		TimerEnd();
 
 		//Deinits pad

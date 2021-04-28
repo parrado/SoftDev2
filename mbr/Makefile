@@ -11,7 +11,7 @@ EE_OBJS= main.o lzma-stub.o payload.o
 
 
 EE_CFLAGS = -G0 -I $(PS2SDK)/ee/include -I $(PS2SDK)/common/include -I . -I common/lzma -D_EE -O3 -Wall -DDO_EXECPS2
-EE_LDFLAGS =  -L lzma -L $(PS2SDK)/ee/lib -Wl,--gc-sections -nostartfiles -Wl,-Ttext -Wl,$(LOADADDR)
+EE_LDFLAGS =   -L lzma -L $(PS2SDK)/ee/lib -Wl,--gc-sections   -Wl,-Ttext -Wl,$(LOADADDR) 
 EE_LIBS = -lc -lkernel -lzma -ldebug
 
 
@@ -28,7 +28,7 @@ $(EE_BIN_STRIPPED): $(EE_BIN)
 
 
 $(EE_BIN_RAW): $(EE_BIN_STRIPPED)
-	ee-objcopy -O binary -v $< $@ 
+	$(EE_OBJCOPY) -O binary -v $< $@ 
 	
 	
 $(EE_LZMA):

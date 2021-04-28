@@ -8,7 +8,7 @@ EE_BIN_RAW = $(EE_TARGET).bin
 EE_OBJS = main.o  pad.o  ps2_asm.o   timer.o loader_elf.o  $(EE_IOP_OBJS)
 EE_IOP_OBJS = IOMANX_irx.o FILEXIO_irx.o SIO2MAN_irx.o PADMAN_irx.o DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o
 
-EE_LDFLAGS = -L$(PS2SDK)/ports/lib -Wl,--gc-sections -nostartfiles -Wl,-Ttext -Wl,$(LOADADDR)
+EE_LDFLAGS = -L$(PS2SDK)/ports/lib -Wl,--gc-sections  -Wl,-Ttext -Wl,$(LOADADDR)
 EE_LIBS = -ldebug -lc -lkernel -lpatches -lfileXio   -lm -lpadx
 EE_INCS= -I$(GSKIT)/include -I$(PS2SDK)/ports/include
 EE_CFLAGS=-Os -ffunction-sections -fdata-sections -DNEWLIB_PORT_AWARE
@@ -22,7 +22,7 @@ all:
 
 clean:
 	$(MAKE) -C ../loader-old/ clean
-	rm -f *.elf *.ELF *.irx *.o *.s *.bin 
+	rm -f *.elf *.ELF *.irx *.o *.s *.bin DEV9_irx.c IOMANX_irx.c FILEXIO_irx.c SIO2MAN_irx.c PADMAN_irx.c ATAD_irx.c HDD_irx.c PFS_irx.c
 
 DEV9_irx.c: $(PS2SDK)/iop/irx/ps2dev9.irx
 	bin2c $(PS2SDK)/iop/irx/ps2dev9.irx DEV9_irx.c DEV9_irx
