@@ -15,10 +15,10 @@ EE_INC_DIR ?= include/
 EE_INCS := $(EE_INCS) -I$(EE_SRC_DIR) -I$(EE_SRC_DIR)include -I$(EE_INC_DIR) -I$(PS2SDKSRC)/ee/kernel/include -I$(PS2SDKSRC)/common/include -I$(PS2SDKSRC)/ee/libc/include -I$(PS2SDKSRC)/ee/erl/include
 
 # C compiler flags
-EE_CFLAGS := -D_EE -O2 -G0 -Wall -Werror $(EE_CFLAGS)
+EE_CFLAGS := -D_EE -O2 -G0 -Wall  $(EE_CFLAGS)
 
 # C++ compiler flags
-EE_CXXFLAGS := -D_EE -O2 -G0 -Wall -Werror $(EE_CXXFLAGS)
+EE_CXXFLAGS := -D_EE -O2 -G0 -Wall  $(EE_CXXFLAGS)
 
 # Linker flags
 EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2DEV)/ee/ee/lib $(EE_LDFLAGS) -lc -lkernel

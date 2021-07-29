@@ -25,14 +25,10 @@
 #include <fileXio_rpc.h>
 #include <fcntl.h>
 #include <sbv_patches.h>
-
 #include <stdio.h>
-#include <debug.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
-
-//#include "stdint.h"
 
 #define NTSC 2
 #define PAL 3
@@ -45,8 +41,9 @@
 #define ELF_MAGIC 0x464c457f
 #define ELF_PT_LOAD 1
 
-extern u8 loader_elf[];
-extern int size_loader_elf;
+//Extern references to embedded IRX/loaders.
+extern u8 elf_loader_elf[];
+extern int elf_size_loader_elf;
 
 extern unsigned char IOMANX_irx[];
 extern unsigned int size_IOMANX_irx;
@@ -106,56 +103,7 @@ typedef struct
 	u32 align;
 } elf_pheader_t;
 
-struct SystemInitParams
-{
-	int InitCompleteSema;
-	unsigned int flags;
-};
 
-static void SystemInitThread(struct SystemInitParams *SystemInitParams)
-{
-	static const char PFS_args[] = "-n\0"
-								   "24\0"
-								   "-o\0"
-								   "8";
-	int i;
-
-	if (SifExecModuleBuffer(ATAD_irx, size_ATAD_irx, 0, NULL, NULL) >= 0)
-	{
-		SifExecModuleBuffer(HDD_irx, size_HDD_irx, 0, NULL, NULL);
-		SifExecModuleBuffer(PFS_irx, size_PFS_irx, sizeof(PFS_args), PFS_args, NULL);
-	}
-
-	SifExitIopHeap();
-	SifLoadFileExit();
-
-	SignalSema(SystemInitParams->InitCompleteSema);
-	ExitDeleteThread();
-}
-
-int SysCreateThread(void *function, void *stack, unsigned int StackSize, void *arg, int priority)
-{
-	ee_thread_t ThreadData;
-	int ThreadID;
-
-	ThreadData.func = function;
-	ThreadData.stack = stack;
-	ThreadData.stack_size = StackSize;
-	ThreadData.gp_reg = &_gp;
-	ThreadData.initial_priority = priority;
-	ThreadData.attr = ThreadData.option = 0;
-
-	if ((ThreadID = CreateThread(&ThreadData)) >= 0)
-	{
-		if (StartThread(ThreadID, arg) < 0)
-		{
-			DeleteThread(ThreadID);
-			ThreadID = -1;
-		}
-	}
-
-	return ThreadID;
-}
 
 u8 romver[16];
 char romver_region_char[1];
@@ -179,17 +127,10 @@ void ResetIOP()
 void InitPS2()
 {
 	int ret;
-	ee_sema_t sema;
-	static unsigned char SysInitThreadStack[SYSTEM_INIT_THREAD_STACK_SIZE] __attribute__((aligned(16)));
-	static struct SystemInitParams InitThreadParams;
-
-	//Do something useful while the IOP resets.
-	sema.init_count = 0;
-	sema.max_count = 1;
-	sema.attr = sema.option = 0;
-	InitThreadParams.InitCompleteSema = CreateSema(&sema);
-	InitThreadParams.flags = 0;
-
+	static const char PFS_args[] = "-n\0"
+								   "24\0"
+								   "-o\0"
+								   "8";
 	ResetIOP();
 
 	SifInitIopHeap();
@@ -212,9 +153,15 @@ void InitPS2()
 	SifExecModuleBuffer(PADMAN_irx, size_PADMAN_irx, 0, NULL, NULL);
 	PadInitPads();
 
-	SysCreateThread(SystemInitThread, SysInitThreadStack, SYSTEM_INIT_THREAD_STACK_SIZE, &InitThreadParams, 0x2);
+	if (SifExecModuleBuffer(ATAD_irx, size_ATAD_irx, 0, NULL, NULL) >= 0)
+	{
+		SifExecModuleBuffer(HDD_irx, size_HDD_irx, 0, NULL, NULL);
+		SifExecModuleBuffer(PFS_irx, size_PFS_irx, sizeof(PFS_args), PFS_args, NULL);
+	}
 
-	WaitSema(InitThreadParams.InitCompleteSema);
+	SifExitIopHeap();
+	SifLoadFileExit();
+
 }
 
 void LoadElf(char *filename, char *party)
@@ -250,7 +197,7 @@ void LoadElf(char *filename, char *party)
 	}
 
 	/* NB: LOADER.ELF is embedded  */
-	boot_elf = (u8 *)loader_elf;
+	boot_elf = (u8 *)elf_loader_elf;
 	eh = (elf_header_t *)boot_elf;
 	if (_lw((u32)&eh->ident) != ELF_MAGIC)
 		asm volatile("break\n");
@@ -292,175 +239,18 @@ int file_exists(char filepath[])
 	return 1;
 }
 
-static u32 execps2_code[] = {
-	0x24030007, // li v1, 7
-	0x0000000c, // syscall
-	0x03e00008, // jr ra
-	0x00000000	// nop
-};
-static u32 execps2_mask[] = {
-	0xffffffff,
-	0xffffffff,
-	0xffffffff,
-	0xffffffff};
-
-//=========================================================================
-//  SkipHdd patch for v3, v4 (those not supporting "SkipHdd" arg)
-
-static u32 pattern10[] = {
-	// Code near MC Update & HDD load
-	0x0c000000, // jal 	 CheckMcUpdate
-	0x0220282d, // daddu a1, s1, zero
-	0x3c04002a, // lui	 a0, 0x002a         #SkipHdd jump must be here
-	0x0000282d, // daddu a1, zero, zero 	#arg1: 0
-	0x24840000, // addiu a0, a0, 0xXXXX  	#arg0: "rom0:ATAD"
-	0x0c000000, // jal 	 LoadModule
-	0x0000302d, // daduu a2, zero, zero		#arg2: 0
-	0x04400000	// bltz  v0, Exit_HddLoad
-};
-static u32 pattern10_mask[] = {
-	0xfc000000,
-	0xffffffff,
-	0xffffffff,
-	0xffffffff,
-	0xffff0000,
-	0xfc000000,
-	0xffffffff,
-	0xffff0000};
-
-//--------------------------------------------------------------
-u8 *find_bytes_with_mask(u8 *buf, u32 bufsize, u8 *bytes, u8 *mask, u32 len)
-{
-	u32 i, j;
-
-	for (i = 0; i < bufsize - len; i++)
-	{
-		for (j = 0; j < len; j++)
-		{
-			if ((buf[i + j] & mask[j]) != bytes[j])
-				break;
-		}
-		if (j == len)
-			return &buf[i];
-	}
-	return NULL;
-}
-//--------------------------------------------------------------
-u8 *find_string(const u8 *string, u8 *buf, u32 bufsize)
-{
-	u32 i;
-	const u8 *s, *p;
-
-	for (i = 0; i < bufsize; i++)
-	{
-		s = string;
-		for (p = buf + i; *s && *s == *p; s++, p++)
-			;
-		if (!*s)
-			return (buf + i);
-	}
-	return NULL;
-}
-
-void patch_skip_hdd(u8 *osd)
-{
-	u8 *ptr;
-	u32 addr;
-
-	// Search code near MC Update & HDD load
-	ptr = find_bytes_with_mask(osd, 0x00100000, (u8 *)pattern10, (u8 *)pattern10_mask, sizeof(pattern10));
-	if (!ptr)
-		return;
-	addr = (u32)ptr;
-
-	// Place "beq zero, zero, Exit_HddLoad" just after CheckMcUpdate() call
-	_sw(0x10000000 + ((signed short)(_lw(addr + 28) & 0xffff) + 5), addr + 8);
-}
-
-void patch_and_execute_osdsys(void *epc, void *gp)
-{
-	
-
-	int n = 0;
-	char *args[5], *ptr;
-	
-	args[n++] = "rom0:";
-	args[n++] = "BootBrowser"; // triggers BootBrowser to reach internal mc browser
-	args[n++] = "SkipMc"; // Skip mc?:/BREXEC-SYSTEM/osdxxx.elf update on v5 and above
-
-	if (find_string("SkipHdd", (u8 *)epc, 0x100000)) // triggers SkipHdd arg
-		args[n++] = "SkipHdd";						 // Skip Hddload on v5 and above
-	else
-		patch_skip_hdd((u8 *)epc); // SkipHdd patch for v3 & v4
-
-	// To avoid loop in OSDSYS (Handle those models not supporting SkipMc arg) :
-	while ((ptr = find_string("EXEC-SYSTEM", (u8 *)epc, 0x100000)))
-		strncpy(ptr, "EXEC-OSDSYS", 11);
-
-	SifExitRpc();
-	FlushCache(0);
-	FlushCache(2);
-
-	ExecPS2(epc, gp, n, args);
-}
-
-//--------------------------------------------------------------
-void launch_osdsys(void) // Run OSDSYS
-{
-	u8 *ptr;
-	t_ExecData exec;
-	int i, j, r;
-
-	SifLoadElf("rom0:OSDSYS", &exec);
-
-	if (exec.epc > 0)
-	{
-
-		// Find the ExecPS2 function in the unpacker starting from 0x100000.
-		ptr = find_bytes_with_mask((u8 *)0x100000, 0x1000, (u8 *)execps2_code, (u8 *)execps2_mask, sizeof(execps2_code));
-
-		// If found replace it with a call to our patch_and_execute_osdsys() function.
-		if (ptr)
-		{
-			u32 instr = 0x0c000000;
-			instr |= ((u32)patch_and_execute_osdsys >> 2);
-			*(u32 *)ptr = instr;
-			*(u32 *)&ptr[4] = 0;
-		}
-
-	
-
-		SifExitRpc();
-		FlushCache(0);
-		FlushCache(2);
-
-		// Execute the osd unpacker. If the above patching was successful it will
-		// call the patch_and_execute_osdsys() function after unpacking.
-		ExecPS2((void *)exec.epc, (void *)exec.gp, 0, NULL);
-	}
-}
-
 int main(int argc, char *argv[])
 {
 
-	int x, r;
-	u64 tstart;
 	int lastKey = 0;
 	int keyStatus;
 	int isEarlyJap = 0;
-	
-	char boot_path[256];
+	u64 tstart;
 
-	char *party = "hdd0:PP.SOFTDEV2.APPS";
-
+	char *party = "hdd0:__sysconf";
 
 	InitPS2();
-	
-	
-		
-  
 
-	
 	int fdnr;
 	if ((fdnr = open("rom0:ROMVER", O_RDONLY)) > 0)
 	{ // Reading ROMVER
@@ -491,41 +281,43 @@ int main(int argc, char *argv[])
 			keyStatus = ReadCombinedPadStatus();
 			if (keyStatus)
 				lastKey = keyStatus;
-				
-		  		
-		}while (Timer() <= (tstart + DELAY));
+
+		} while (Timer() <= (tstart + DELAY));
 		TimerEnd();
 
 		//Deinits pad
 		if (!isEarlyJap)
 		{
-			PadDeinitPads();
-		}
-
-		if (lastKey & PAD_CIRCLE)
-
-		{
-			if (file_exists("pfs0:ULE.ELF"))
-				LoadElf("pfs0:ULE.ELF", party);
-
-			if (file_exists("pfs0:OPNPS2LD.ELF"))
-				LoadElf("pfs0:OPNPS2LD.ELF", party);
+			padPortClose(0, 0);
+			padPortClose(1, 0);
+			padEnd();
 		}
 
 		if (lastKey & PAD_TRIANGLE)
 		{
+
 			fileXioUmount("pfs0:");
-			launch_osdsys();
+			LoadElf("rom0:OSDSYS", "hdd0:");
 		}
 
-		if (file_exists("pfs0:OPNPS2LD.ELF"))
-			LoadElf("pfs0:OPNPS2LD.ELF", party);
+		if (lastKey & PAD_CIRCLE)
+		{
 
-		if (file_exists("pfs0:ULE.ELF"))
-			LoadElf("pfs0:ULE.ELF", party);
+			if (file_exists("pfs0:/softdev2/ULE.ELF"))
+				LoadElf("pfs0:/softdev2/ULE.ELF", party);
+
+			if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
+				LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+		}
+
+		if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
+			LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+
+		if (file_exists("pfs0:/softdev2/ULE.ELF"))
+			LoadElf("pfs0:/softdev2/ULE.ELF", party);
 	}
 
-	launch_osdsys();
+	LoadElf("rom0:OSDSYS", "hdd0:");
 
 	return 0;
 }

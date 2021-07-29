@@ -9,8 +9,8 @@
 ### Adjust these three, for PS2Link compatibility tests
 ### Old LaunchELF used LA=0x90000, SA=0xB0000, SS=0x08000
 LOADADDR  = 0x90000
-STACKADDR = 0xA8000
-STACKSIZE = 0x04000
+STACKADDR = 0xB0000
+STACKSIZE = 0x08000
 
 ifeq ($(DEBUG),1)
 LOADADDR  = 0x1700000
