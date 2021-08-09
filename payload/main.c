@@ -248,6 +248,8 @@ int main(int argc, char *argv[])
 	u64 tstart;
 
 	char *party = "hdd0:__sysconf";
+	
+	char *args[1];
 
 	InitPS2();
 
@@ -297,27 +299,46 @@ int main(int argc, char *argv[])
 		{
 
 			fileXioUmount("pfs0:");
-			LoadElf("rom0:OSDSYS", "hdd0:");
+			//LoadElf("rom0:OSDSYS", "hdd0:");
+			args[0]="hdd0:";
+			LoadELFFromFile("rom0:OSDSYS",1,args);
 		}
 
 		if (lastKey & PAD_CIRCLE)
 		{
 
-			if (file_exists("pfs0:/softdev2/ULE.ELF"))
-				LoadElf("pfs0:/softdev2/ULE.ELF", party);
+			if (file_exists("pfs0:/softdev2/ULE.ELF")){
+				//LoadElf("pfs0:/softdev2/ULE.ELF", party);
+				args[0]=party;
+				LoadELFFromFile("pfs0:/softdev2/ULE.ELF",1,args);
+				
+				}
 
-			if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
-				LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+			if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF")){
+				//LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+				args[0]=party;
+				LoadELFFromFile("pfs0:/softdev2/OPNPS2LD.ELF",1,args);
+				
+				}
 		}
 
-		if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
-			LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+		if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF")){
+			//LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
+			args[0]=party;
+			LoadELFFromFile("pfs0:/softdev2/OPNPS2LD.ELF",1,args);
+			}
+			
 
-		if (file_exists("pfs0:/softdev2/ULE.ELF"))
-			LoadElf("pfs0:/softdev2/ULE.ELF", party);
+		if (file_exists("pfs0:/softdev2/ULE.ELF")){
+			//LoadElf("pfs0:/softdev2/ULE.ELF", party);
+			args[0]=party;
+			LoadELFFromFile("pfs0:/softdev2/ULE.ELF",1,args);
+			}
 	}
 
-	LoadElf("rom0:OSDSYS", "hdd0:");
+	//LoadElf("rom0:OSDSYS", "hdd0:");
+	args[0]="hdd0:";
+	LoadELFFromFile("rom0:OSDSYS",1,args);
 
 	return 0;
 }
