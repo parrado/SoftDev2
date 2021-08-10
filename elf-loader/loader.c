@@ -32,15 +32,18 @@
 #include <string.h>
 #include <iopcontrol.h>
 
+
+   void _ps2sdk_libc_init() {}
+   void _ps2sdk_libc_deinit() {}
 //Code for OSDSYS patching was taken from FMCB 1.8 sources
 
-static u32 execps2_code[] = {
+ u32 execps2_code[] = {
 	0x24030007, // li v1, 7
 	0x0000000c, // syscall
 	0x03e00008, // jr ra
 	0x00000000	// nop
 };
-static u32 execps2_mask[] = {
+ u32 execps2_mask[] = {
 	0xffffffff,
 	0xffffffff,
 	0xffffffff,
@@ -49,7 +52,7 @@ static u32 execps2_mask[] = {
 //=========================================================================
 //  SkipHdd patch for v3, v4 (those not supporting "SkipHdd" arg)
 
-static u32 pattern10[] = {
+ u32 pattern10[] = {
 	// Code near MC Update & HDD load
 	0x0c000000, // jal 	 CheckMcUpdate
 	0x0220282d, // daddu a1, s1, zero
@@ -60,7 +63,7 @@ static u32 pattern10[] = {
 	0x0000302d, // daduu a2, zero, zero		#arg2: 0
 	0x04400000	// bltz  v0, Exit_HddLoad
 };
-static u32 pattern10_mask[] = {
+ u32 pattern10_mask[] = {
 	0xfc000000,
 	0xffffffff,
 	0xffffffff,
@@ -71,7 +74,7 @@ static u32 pattern10_mask[] = {
 	0xffff0000};
 
 //--------------------------------------------------------------
-static u8 *find_bytes_with_mask(u8 *buf, u32 bufsize, u8 *bytes, u8 *mask, u32 len)
+ u8 *find_bytes_with_mask(u8 *buf, u32 bufsize, u8 *bytes, u8 *mask, u32 len)
 {
 	u32 i, j;
 
@@ -88,7 +91,7 @@ static u8 *find_bytes_with_mask(u8 *buf, u32 bufsize, u8 *bytes, u8 *mask, u32 l
 	return NULL;
 }
 //--------------------------------------------------------------
-static u8 *find_string(const u8 *string, u8 *buf, u32 bufsize)
+ u8 *find_string(const u8 *string, u8 *buf, u32 bufsize)
 {
 	u32 i;
 	const u8 *s, *p;
@@ -103,8 +106,7 @@ static u8 *find_string(const u8 *string, u8 *buf, u32 bufsize)
 	}
 	return NULL;
 }
-
-static void patch_skip_hdd(u8 *osd)
+ void patch_skip_hdd(u8 *osd)
 {
 	u8 *ptr;
 	u32 addr;
@@ -119,7 +121,7 @@ static void patch_skip_hdd(u8 *osd)
 	_sw(0x10000000 + ((signed short)(_lw(addr + 28) & 0xffff) + 5), addr + 8);
 }
 
-static void patch_and_execute_osdsys(void *epc, void *gp)
+ void patch_and_execute_osdsys(void *epc, void *gp)
 {
 
 	int n = 0;
@@ -154,7 +156,7 @@ static void patch_and_execute_osdsys(void *epc, void *gp)
 // PS2Link (C) 2003 Tord Lindstrom (pukko@home.se)
 //         (C) 2003 adresd (adresd_ps2dev@yahoo.com)
 //--------------------------------------------------------------
-static void wipeUserMem(void)
+void wipeUserMem(void)
 {
 	int i;
 	for (i = 0x100000; i < GetMemorySize(); i += 64)

@@ -4,17 +4,9 @@
 #include <kernel.h>
 #include <sifrpc.h>
 #include <loadfile.h>
-#include <stdio.h>
 #include <unistd.h>
-#include <time.h>
-#include <string.h>
-#include <libcdvd.h>
 #include <iopcontrol.h>
 #include <iopheap.h>
-#include <kernel.h>
-#include <libcdvd.h>
-#include <libmc.h>
-#include <libpwroff.h>
 #include <loadfile.h>
 #include <libpad.h>
 #include <sbv_patches.h>
@@ -25,17 +17,15 @@
 #include <fileXio_rpc.h>
 #include <fcntl.h>
 #include <sbv_patches.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <string.h>
+#include <sys/times.h>
+#include "pad.h"
 
 #define NTSC 2
 #define PAL 3
 
-#define DELAY 100
-
-#define SYSTEM_INIT_THREAD_STACK_SIZE 0x1000
+#define DELAY 100L
 
 // ELF-loading stuff
 #define ELF_MAGIC 0x464c457f
@@ -103,8 +93,6 @@ typedef struct
 	u32 align;
 } elf_pheader_t;
 
-
-
 u8 romver[16];
 char romver_region_char[1];
 char ROMVersionNumStr[5];
@@ -126,7 +114,7 @@ void ResetIOP()
 
 void InitPS2()
 {
-	int ret;
+
 	static const char PFS_args[] = "-n\0"
 								   "24\0"
 								   "-o\0"
@@ -144,14 +132,13 @@ void InitPS2()
 	SifExecModuleBuffer(FILEXIO_irx, size_FILEXIO_irx, 0, NULL, NULL);
 
 	fileXioInit();
-	//sceCdInit(SCECdINoD);
+	
 
-	ret = SifExecModuleBuffer(DEV9_irx, size_DEV9_irx, 0, NULL, &stat);
-
+	SifExecModuleBuffer(DEV9_irx, size_DEV9_irx, 0, NULL, &stat);
 	SifExecModuleBuffer(SIO2MAN_irx, size_SIO2MAN_irx, 0, NULL, NULL);
-
 	SifExecModuleBuffer(PADMAN_irx, size_PADMAN_irx, 0, NULL, NULL);
 	PadInitPads();
+	
 
 	if (SifExecModuleBuffer(ATAD_irx, size_ATAD_irx, 0, NULL, NULL) >= 0)
 	{
@@ -161,7 +148,7 @@ void InitPS2()
 
 	SifExitIopHeap();
 	SifLoadFileExit();
-
+	
 }
 
 void LoadElf(char *filename, char *party)
@@ -245,11 +232,10 @@ int main(int argc, char *argv[])
 	int lastKey = 0;
 	int keyStatus;
 	int isEarlyJap = 0;
-	u64 tstart;
+	struct tms tstart,tstop;
 
 	char *party = "hdd0:__sysconf";
-	
-	char *args[1];
+
 
 	InitPS2();
 
@@ -273,9 +259,7 @@ int main(int argc, char *argv[])
 	if (fileXioMount("pfs0:", party, FIO_MT_RDONLY) == 0)
 	{
 
-		TimerInit();
-		tstart = Timer();
-
+		times(&tstart);
 		//Stores last key during DELAY msec
 		do
 		{
@@ -283,9 +267,8 @@ int main(int argc, char *argv[])
 			keyStatus = ReadCombinedPadStatus();
 			if (keyStatus)
 				lastKey = keyStatus;
-
-		} while (Timer() <= (tstart + DELAY));
-		TimerEnd();
+			times(&tstop);
+		} while (tstop.tms_utime <= (tstart.tms_utime + DELAY));
 
 		//Deinits pad
 		if (!isEarlyJap)
@@ -299,46 +282,27 @@ int main(int argc, char *argv[])
 		{
 
 			fileXioUmount("pfs0:");
-			//LoadElf("rom0:OSDSYS", "hdd0:");
-			args[0]="hdd0:";
-			LoadELFFromFile("rom0:OSDSYS",1,args);
+			LoadElf("rom0:OSDSYS", "hdd0:");
 		}
 
 		if (lastKey & PAD_CIRCLE)
 		{
 
-			if (file_exists("pfs0:/softdev2/ULE.ELF")){
-				//LoadElf("pfs0:/softdev2/ULE.ELF", party);
-				args[0]=party;
-				LoadELFFromFile("pfs0:/softdev2/ULE.ELF",1,args);
-				
-				}
+			if (file_exists("pfs0:/softdev2/ULE.ELF"))
+				LoadElf("pfs0:/softdev2/ULE.ELF", party);
 
-			if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF")){
-				//LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
-				args[0]=party;
-				LoadELFFromFile("pfs0:/softdev2/OPNPS2LD.ELF",1,args);
-				
-				}
+			if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
+				LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
 		}
 
-		if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF")){
-			//LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
-			args[0]=party;
-			LoadELFFromFile("pfs0:/softdev2/OPNPS2LD.ELF",1,args);
-			}
-			
+		if (file_exists("pfs0:/softdev2/OPNPS2LD.ELF"))
+			LoadElf("pfs0:/softdev2/OPNPS2LD.ELF", party);
 
-		if (file_exists("pfs0:/softdev2/ULE.ELF")){
-			//LoadElf("pfs0:/softdev2/ULE.ELF", party);
-			args[0]=party;
-			LoadELFFromFile("pfs0:/softdev2/ULE.ELF",1,args);
-			}
+		if (file_exists("pfs0:/softdev2/ULE.ELF"))
+			LoadElf("pfs0:/softdev2/ULE.ELF", party);
 	}
 
-	//LoadElf("rom0:OSDSYS", "hdd0:");
-	args[0]="hdd0:";
-	LoadELFFromFile("rom0:OSDSYS",1,args);
+	LoadElf("rom0:OSDSYS", "hdd0:");
 
 	return 0;
 }

@@ -5,13 +5,13 @@ EE_BIN_RAW = $(EE_TARGET).bin
 EE_BIN_STRIPPED = $(EE_TARGET)-stripped.elf
 
 EE_BIN_RAW = $(EE_TARGET).bin
-EE_OBJS = main.o  pad.o  timer.o elf_loader_elf.o $(EE_IOP_OBJS)
+EE_OBJS = main.o  pad.o   elf_loader_elf.o $(EE_IOP_OBJS)
 EE_IOP_OBJS = IOMANX_irx.o FILEXIO_irx.o SIO2MAN_irx.o PADMAN_irx.o DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o
 
 
 EE_LDFLAGS =  -L $(PS2SDK)/ee/lib -Wl,--gc-sections -Wl,-Ttext -Wl,$(LOADADDR)
-EE_LIBS = -lelf-loader -lkernel -lpatches -lfileXio   -lpadx
-EE_INCS= -I$(GSKIT)/include -I$(PS2SDK)/ports/include
+EE_LIBS =  -lpatches -lfileXio   -lpadx
+EE_INCS= -I$(GSKIT)/include -I$(PS2SDK)/ports/include 
 EE_CFLAGS=-G0 -I $(PS2SDK)/ee/include -I $(PS2SDK)/common/include -D_EE -Os -Wall -ffunction-sections -fdata-sections -DNEWLIB_PORT_AWARE
 
 
