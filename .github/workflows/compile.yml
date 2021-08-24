@@ -33,6 +33,5 @@ jobs:
       with:
         name: SoftDev2-Launcher
         path: |
-	    launcher-hdd/payload/payload-stripped.elf
-            launcher-hdd/payload/payload.bin
-            
+              launcher-hdd/payload/payload-stripped.elf
+              launcher-hdd/payload/payload.bin       	
