@@ -189,7 +189,7 @@ int InstallSoftDev2()
 		result = mkdir("pfs0:/softdev2", 0777);		
 		
 		
-		if ((result==0)||((result==-1) && (errno=EEXIST)))
+		if ((result==0)||((result==-1) && (errno==EEXIST)))
 		{
 			result=0;
 			if ((result = createFileFromBuffer("pfs0:/softdev2/OPNPS2LD.ELF", OPL_elf, size_OPL_elf)) == 0)
