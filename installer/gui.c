@@ -126,7 +126,7 @@ void gui_init(){
 	{
 		gsTextures[i].Delayed = 1;
 		texPngLoad(&gsTextures[i], i);
-		gsTextures[i].Filter = GS_FILTER_LINEAR;
+		gsTextures[i].Filter = GS_FILTER_NEAREST;
 	}
 
 }
