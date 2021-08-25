@@ -26,15 +26,14 @@ static texture_t internalTexture[TEXTURES_COUNT] = {
 	{CROSS, &cross_png},
 	{SQUARE, &square_png},
 	{TRIANGLE, &triangle_png},
-	{CIRCLE, &circle_png}
-};
+	{CIRCLE, &circle_png}};
 
 static int texSizeValidate(int width, int height, short psm)
 {
 	if (width > 1024 || height > 1024)
 		return -1;
 
-	if (gsKit_texture_size(width, height, psm) > 720*512*4)
+	if (gsKit_texture_size(width, height, psm) > 720 * 512 * 4)
 		return -1;
 
 	return 0;
@@ -82,11 +81,13 @@ static void texPngReadPixels4(GSTEXTURE *texture, png_bytep *rowPointers)
 
 	int i, j, k = 0;
 
-	for (i = pngTexture.numPalette; i < 16; i++) {
+	for (i = pngTexture.numPalette; i < 16; i++)
+	{
 		memset(&clut[i], 0, sizeof(clut[i]));
 	}
 
-	for (i = 0; i < pngTexture.numPalette; i++) {
+	for (i = 0; i < pngTexture.numPalette; i++)
+	{
 		clut[i].red = pngTexture.palette[i].red;
 		clut[i].green = pngTexture.palette[i].green;
 		clut[i].blue = pngTexture.palette[i].blue;
@@ -96,8 +97,10 @@ static void texPngReadPixels4(GSTEXTURE *texture, png_bytep *rowPointers)
 	for (i = 0; i < pngTexture.numTrans; i++)
 		clut[i].alpha = pngTexture.trans[i] >> 1;
 
-	for (i = 0; i < texture->Height; i++) {
-		for (j = 0; j < texture->Width / 2; j++) {
+	for (i = 0; i < texture->Height; i++)
+	{
+		for (j = 0; j < texture->Width / 2; j++)
+		{
 			memcpy(&pixel[k], &rowPointers[i][1 * j], 1);
 			pixel[k] = (pixel[k] << 4) | (pixel[k] >> 4);
 			k++;
@@ -112,11 +115,13 @@ static void texPngReadPixels8(GSTEXTURE *texture, png_bytep *rowPointers)
 
 	int i, j, k = 0;
 
-	for (i = pngTexture.numPalette; i < 256; i++) {
+	for (i = pngTexture.numPalette; i < 256; i++)
+	{
 		memset(&clut[i], 0, sizeof(clut[i]));
 	}
 
-	for (i = 0; i < pngTexture.numPalette; i++) {
+	for (i = 0; i < pngTexture.numPalette; i++)
+	{
 		clut[i].red = pngTexture.palette[i].red;
 		clut[i].green = pngTexture.palette[i].green;
 		clut[i].blue = pngTexture.palette[i].blue;
@@ -127,16 +132,20 @@ static void texPngReadPixels8(GSTEXTURE *texture, png_bytep *rowPointers)
 		clut[i].alpha = pngTexture.trans[i] >> 1;
 
 	// rotate clut
-	for (i = 0; i < pngTexture.numPalette; i++) {
-		if ((i&0x18) == 8) {
+	for (i = 0; i < pngTexture.numPalette; i++)
+	{
+		if ((i & 0x18) == 8)
+		{
 			png_clut_t tmp = clut[i];
-			clut[i] = clut[i+8];
-			clut[i+8] = tmp;
+			clut[i] = clut[i + 8];
+			clut[i + 8] = tmp;
 		}
 	}
 
-	for (i = 0; i < texture->Height; i++) {
-		for (j = 0; j < texture->Width; j++) {
+	for (i = 0; i < texture->Height; i++)
+	{
+		for (j = 0; j < texture->Width; j++)
+		{
 			memcpy(&pixel[k++], &rowPointers[i][1 * j], 1);
 		}
 	}
@@ -151,8 +160,10 @@ static void texPngReadPixels24(GSTEXTURE *texture, png_bytep *rowPointers)
 	struct pixel3 *Pixels = (struct pixel3 *)texture->Mem;
 
 	int i, j, k = 0;
-	for (i = 0; i < texture->Height; i++) {
-		for (j = 0; j < texture->Width; j++) {
+	for (i = 0; i < texture->Height; i++)
+	{
+		for (j = 0; j < texture->Width; j++)
+		{
 			memcpy(&Pixels[k++], &rowPointers[i][4 * j], 3);
 		}
 	}
@@ -167,8 +178,10 @@ static void texPngReadPixels32(GSTEXTURE *texture, png_bytep *rowPointers)
 	struct pixel *Pixels = (struct pixel *)texture->Mem;
 
 	int i, j, k = 0;
-	for (i = 0; i < texture->Height; i++) {
-		for (j = 0; j < texture->Width; j++) {
+	for (i = 0; i < texture->Height; i++)
+	{
+		for (j = 0; j < texture->Width; j++)
+		{
 			memcpy(&Pixels[k], &rowPointers[i][4 * j], 3);
 			Pixels[k++].a = rowPointers[i][4 * j + 3] >> 1;
 		}
@@ -183,13 +196,15 @@ static void texPngReadData(GSTEXTURE *texture, png_structp pngPtr, png_infop inf
 	texture->Mem = memalign(128, size);
 
 	// failed allocation
-	if (!texture->Mem) {
+	if (!texture->Mem)
+	{
 		printf("TEXTURES PngReadData: Failed to allocate %d bytes\n", size);
 		return;
 	}
 
 	png_bytep *rowPointers = calloc(texture->Height, sizeof(png_bytep));
-	for (row = 0; row < texture->Height; row++) {
+	for (row = 0; row < texture->Height; row++)
+	{
 		rowPointers[row] = malloc(rowBytes);
 	}
 	png_read_image(pngPtr, rowPointers);
@@ -259,46 +274,51 @@ int texPngLoad(GSTEXTURE *texture, int texID)
 	png_read_update_info(pngPtr, infoPtr);
 
 	void (*texPngReadPixels)(GSTEXTURE * texture, png_bytep * rowPointers);
-	switch (png_get_color_type(pngPtr, infoPtr)) {
-		case PNG_COLOR_TYPE_RGB_ALPHA:
-			texture->PSM = GS_PSM_CT32;
-			texPngReadPixels = &texPngReadPixels32;
-			break;
-		case PNG_COLOR_TYPE_RGB:
-			texture->PSM = GS_PSM_CT24;
-			texPngReadPixels = &texPngReadPixels24;
-			break;
-		case PNG_COLOR_TYPE_PALETTE:
-			pngTexture.palette = NULL;
-			pngTexture.numPalette = 0;
-			pngTexture.trans = NULL;
-			pngTexture.numTrans = 0;
+	switch (png_get_color_type(pngPtr, infoPtr))
+	{
+	case PNG_COLOR_TYPE_RGB_ALPHA:
+		texture->PSM = GS_PSM_CT32;
+		texPngReadPixels = &texPngReadPixels32;
+		break;
+	case PNG_COLOR_TYPE_RGB:
+		texture->PSM = GS_PSM_CT24;
+		texPngReadPixels = &texPngReadPixels24;
+		break;
+	case PNG_COLOR_TYPE_PALETTE:
+		pngTexture.palette = NULL;
+		pngTexture.numPalette = 0;
+		pngTexture.trans = NULL;
+		pngTexture.numTrans = 0;
 
-			png_get_PLTE(pngPtr, infoPtr, &pngTexture.palette, &pngTexture.numPalette);
-			png_get_tRNS(pngPtr, infoPtr, &pngTexture.trans, &pngTexture.numTrans, NULL);
-			texture->ClutPSM = GS_PSM_CT32;
+		png_get_PLTE(pngPtr, infoPtr, &pngTexture.palette, &pngTexture.numPalette);
+		png_get_tRNS(pngPtr, infoPtr, &pngTexture.trans, &pngTexture.numTrans, NULL);
+		texture->ClutPSM = GS_PSM_CT32;
 
-			if (bitDepth == 4) {
-				texture->PSM = GS_PSM_T4;
-				texture->Clut = memalign(128, gsKit_texture_size_ee(8, 2, GS_PSM_CT32));
-				memset(texture->Clut, 0, gsKit_texture_size_ee(8, 2, GS_PSM_CT32));
+		if (bitDepth == 4)
+		{
+			texture->PSM = GS_PSM_T4;
+			texture->Clut = memalign(128, gsKit_texture_size_ee(8, 2, GS_PSM_CT32));
+			memset(texture->Clut, 0, gsKit_texture_size_ee(8, 2, GS_PSM_CT32));
 
-				texPngReadPixels = &texPngReadPixels4;
-			}
-			else {
-				texture->PSM = GS_PSM_T8;
-				texture->Clut = memalign(128, gsKit_texture_size_ee(16, 16, GS_PSM_CT32));
-				memset(texture->Clut, 0, gsKit_texture_size_ee(16, 16, GS_PSM_CT32));
+			texPngReadPixels = &texPngReadPixels4;
+		}
+		else
+		{
+			texture->PSM = GS_PSM_T8;
+			texture->Clut = memalign(128, gsKit_texture_size_ee(16, 16, GS_PSM_CT32));
+			memset(texture->Clut, 0, gsKit_texture_size_ee(16, 16, GS_PSM_CT32));
 
-				texPngReadPixels = &texPngReadPixels8;
-			}
-			break;
-		default:
-			return texPngEnd(pngPtr, infoPtr, -6);
+			texPngReadPixels = &texPngReadPixels8;
+		}
+		break;
+	default:
+		return texPngEnd(pngPtr, infoPtr, -6);
 	}
 
-	if (texSizeValidate(texture->Width, texture->Height, texture->PSM) < 0) {
-		if (texture->Clut) {
+	if (texSizeValidate(texture->Width, texture->Height, texture->PSM) < 0)
+	{
+		if (texture->Clut)
+		{
 			free(texture->Clut);
 			texture->Clut = NULL;
 		}

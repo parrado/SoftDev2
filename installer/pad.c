@@ -7,7 +7,7 @@
 #include "include/pad.h"
 
 static unsigned char padArea[2][256] ALIGNED(64);
-static unsigned int old_pad[2]={0, 0};
+static unsigned int old_pad[2] = {0, 0};
 
 void PadInitPads(void)
 {
@@ -26,28 +26,33 @@ void PadDeinitPads(void)
 	padEnd();
 }
 
-int ReadPadStatus_raw(int port, int slot){
+int ReadPadStatus_raw(int port, int slot)
+{
 	struct padButtonStatus buttons;
 	u32 paddata;
 
-	paddata=0;
-	if(padRead(port, slot, &buttons) != 0){
+	paddata = 0;
+	if (padRead(port, slot, &buttons) != 0)
+	{
 		paddata = 0xffff ^ buttons.btns;
 	}
 
 	return paddata;
 }
 
-int ReadCombinedPadStatus_raw(void){
-	return(ReadPadStatus_raw(0, 0)|ReadPadStatus_raw(1, 0));
+int ReadCombinedPadStatus_raw(void)
+{
+	return (ReadPadStatus_raw(0, 0) | ReadPadStatus_raw(1, 0));
 }
 
-int ReadPadStatus(int port, int slot){
+int ReadPadStatus(int port, int slot)
+{
 	struct padButtonStatus buttons;
 	u32 new_pad, paddata;
 
-	new_pad=0;
-	if (padRead(port, slot, &buttons) != 0) {
+	new_pad = 0;
+	if (padRead(port, slot, &buttons) != 0)
+	{
 		paddata = 0xffff ^ buttons.btns;
 
 		new_pad = paddata & ~old_pad[port];
@@ -57,6 +62,7 @@ int ReadPadStatus(int port, int slot){
 	return new_pad;
 }
 
-int ReadCombinedPadStatus(void){
-	return(ReadPadStatus(0, 0)|ReadPadStatus(1, 0));
+int ReadCombinedPadStatus(void)
+{
+	return (ReadPadStatus(0, 0) | ReadPadStatus(1, 0));
 }

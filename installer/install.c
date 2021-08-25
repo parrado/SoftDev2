@@ -1,4 +1,5 @@
 //SoftDev2 Installer by alexparrado 2021
+
 #include <iopheap.h>
 #include <kernel.h>
 #include <iox_stat.h>
@@ -31,7 +32,6 @@ extern unsigned int size_ULE_elf;
 
 extern unsigned char MBR_xin[];
 extern unsigned int size_MBR_xin;
-
 
 /////////////From FHDB 1.9 installer source code////////////////////
 int HDDCheckStatus(void)
@@ -115,7 +115,7 @@ int createFileFromBuffer(char *fileName, char *buffer, int size)
 }
 
 //To inject MBR from embedded buffer (MBR.XIN)
-int injectMBR(char *buffer, int size)
+int injectMBRFromBuffer(char *buffer, int size)
 {
 
 	int result;
@@ -137,7 +137,7 @@ int injectMBR(char *buffer, int size)
 		sector = statFile.private_5 + 0x2000;
 
 		//Bytes in last sector
-		remainder = (size & 0x1FF);		
+		remainder = (size & 0x1FF);
 
 		//Total sectors to inject
 		numSectors = (size / 512) + ((remainder) ? 1 : 0);
@@ -176,7 +176,6 @@ int injectMBR(char *buffer, int size)
 	return result;
 }
 
-
 //Main installation function
 int InstallSoftDev2()
 {
@@ -186,16 +185,15 @@ int InstallSoftDev2()
 
 	if ((result = fileXioMount("pfs0:", party, FIO_MT_RDWR)) == 0)
 	{
-		result = mkdir("pfs0:/softdev2", 0777);		
-		
-		
-		if ((result==0)||((result==-1) && (errno==EEXIST)))
+		result = mkdir("pfs0:/softdev2", 0777);
+
+		if ((result == 0) || ((result == -1) && (errno == EEXIST)))
 		{
-			result=0;
+			result = 0;
 			if ((result = createFileFromBuffer("pfs0:/softdev2/OPNPS2LD.ELF", OPL_elf, size_OPL_elf)) == 0)
 				if ((result = createFileFromBuffer("pfs0:/softdev2/ULE.ELF", ULE_elf, size_ULE_elf)) == 0)
 				{
-					if ((result = injectMBR(MBR_xin, size_MBR_xin)) >= 0)
+					if ((result = injectMBRFromBuffer(MBR_xin, size_MBR_xin)) >= 0)
 						result = EnableHDDBooting();
 				}
 		}
@@ -203,13 +201,3 @@ int InstallSoftDev2()
 
 	return result;
 }
-
-
-
-
-
-
-
-
-
-

@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 
-
+//Embedded IOP drivers
 extern unsigned char IOMANX_irx[];
 extern unsigned int size_IOMANX_irx;
 
@@ -35,7 +35,6 @@ extern unsigned int size_HDD_irx;
 
 extern unsigned char PFS_irx[];
 extern unsigned int size_PFS_irx;
-
 
 void ResetIOP()
 {
