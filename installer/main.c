@@ -23,8 +23,8 @@
 #include "include/gui.h"
 #include "include/textures.h"
 
-#define FONT_SIZE1 25
-#define FONT_SIZE2 25
+#define FONT_SIZE1 0.9F
+#define FONT_SIZE2 0.8F
 #define SPACING 20
 
 //External variables for GS
@@ -60,6 +60,8 @@ void drawSelectionScreen(internal_texture_t backgroundTexture, char *title, char
 	int prevH = 0;
 
 	drawBackground(backgroundTexture);
+
+	
 	
 
 	drawTexture(LOGO, gsGlobal->Width / 2 - gsTextures[LOGO].Width / 2, SPACING);
@@ -80,7 +82,7 @@ void drawSelectionScreen(internal_texture_t backgroundTexture, char *title, char
 	}
 
 	drawTexture(CIRCLE, SPACING, prevH);
-	drawFont(SPACING + 1.5*gsTextures[CIRCLE].Width, prevH, FONT_SIZE2,  0xFFFFFF, "Exit\n");
+	drawFont(SPACING + 1.5*gsTextures[CIRCLE].Width, prevH, FONT_SIZE2,  0xFFFFFF, "Exit");
 
 	draw();
 }
@@ -106,7 +108,7 @@ int menu()
 	case STATE_INIT:
 
 	
-		options[0] = "Continue\n";
+		options[0] = "Continue";
 		nOptions = 1;
 		drawSelectionScreen(BACKGROUND, "PLEASE SELECT ONE OPTION", options, nOptions);
 		
@@ -142,7 +144,7 @@ int menu()
 
 			options[0] = "Format";
 			nOptions = 1;
-			drawSelectionScreen(BACKGROUND, "HDD IS NOT FORMATTED\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND, "HDD IS NOT FORMATTED", options, nOptions);
 
 			while (1)
 			{
@@ -170,7 +172,7 @@ int menu()
 		default: //Unknown errors
 
 			nOptions = 0;
-			drawSelectionScreen(BACKGROUND_ERROR, "HDD IS NOT CONNECTED OR IS UNUSABLE\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND_ERROR, "HDD IS NOT CONNECTED OR IS UNUSABLE", options, nOptions);
 
 			while (1)
 			{
@@ -193,7 +195,7 @@ int menu()
 		{
 
 			nOptions = 0;
-			drawSelectionScreen(BACKGROUND_ERROR, "FORMAT FAILED\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND_ERROR, "FORMAT FAILED", options, nOptions);
 			while (1)
 			{
 				key = ReadCombinedPadStatus();
@@ -209,7 +211,7 @@ int menu()
 		{
 			nOptions = 1;
 			options[0] = "Continue";
-			drawSelectionScreen(BACKGROUND_SUCCESS, "FORMAT SUCCEDED\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND_SUCCESS, "FORMAT SUCCEDED", options, nOptions);
 			while (1)
 			{
 				key = ReadCombinedPadStatus();
@@ -233,9 +235,9 @@ int menu()
 	//State where installation is confirmed
 	case STATE_CONFIRM:
 
-		options[0] = "Install\n";
+		options[0] = "Install";
 		nOptions = 1;
-		drawSelectionScreen(BACKGROUND, "SOFTDEV2 WILL BE INSTALLED ON HDD\n", options, nOptions);
+		drawSelectionScreen(BACKGROUND, "SOFTDEV2 WILL BE INSTALLED ON HDD", options, nOptions);
 
 		while (1)
 		{
@@ -258,12 +260,12 @@ int menu()
 	case STATE_INSTALLING:
 
 		nOptions = 0;
-		drawSelectionScreen(BACKGROUND, "INSTALLING SOFTDEV2 ON HDD...\n", options, nOptions);
+		drawSelectionScreen(BACKGROUND, "INSTALLING SOFTDEV2 ON HDD...", options, nOptions);
 
 		if (InstallSoftDev2() < 0)
-			drawSelectionScreen(BACKGROUND_ERROR, "INSTALLATION FAILED\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND_ERROR, "INSTALLATION FAILED", options, nOptions);
 		else
-			drawSelectionScreen(BACKGROUND_SUCCESS, "INSTALLATION SUCCEDED\n", options, nOptions);
+			drawSelectionScreen(BACKGROUND_SUCCESS, "INSTALLATION SUCCEDED", options, nOptions);
 
 		while (1)
 		{
