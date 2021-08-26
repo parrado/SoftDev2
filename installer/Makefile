@@ -7,13 +7,13 @@ EE_BIN_STRIPPED = main-stripped.ELF
 EE_IOP_OBJS = FILEXIO_irx.o IOMANX_irx.o SIO2MAN_irx.o PADMAN_irx.o  DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o 
 
 
+EE_OBJS = main.o iop.o  pad.o install.o   OPL_elf.o  ULE_elf.o MBR_xin.o gui.o textures.o  background_png.o background_success_png.o background_error_png.o logo_png.o cross_png.o circle_png.o square_png.o triangle_png.o font_ttf.o $(EE_IOP_OBJS) 
 
-EE_OBJS = main.o iop.o  pad.o install.o   OPL_elf.o  ULE_elf.o MBR_xin.o gui.o textures.o  background_png.o background_success_png.o background_error_png.o logo_png.o cross_png.o circle_png.o square_png.o triangle_png.o $(EE_IOP_OBJS) 
+EE_INCS := -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include  -I$(PS2SDK)/ports/include -I$(PS2SDK)/sbv/include -I$(GSKIT)/include -I$(GSKIT)/ee/dma/include -I$(GSKIT)/ee/gs/include -I$(GSKIT)/ee/toolkit/include -I$(PS2SDK)/ports/include/freetype2
 
-EE_INCS := -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include  -I$(PS2SDK)/ports/include -I$(PS2SDK)/sbv/include -I$(GSKIT)/include -I$(GSKIT)/ee/dma/include -I$(GSKIT)/ee/gs/include -I$(GSKIT)/ee/toolkit/include
 EE_LDFLAGS := -L$(PS2SDK)/ports/lib -L$(PS2SDK)/ee/lib -L$(PS2DEV)/ee/ee/lib -L$(GSKIT)/lib
-EE_LIBS = -ldebug -lm  -lpadx  -lpatches  -lc -lkernel -lfileXio -lhdd  -lgskit -ldmakit -lgskit_toolkit -L$(PS2SDK)/ports/lib -lpng  -lz
-EE_GPVAL = -G8192
+EE_LIBS = -lpadx  -lpatches  -lc -lkernel -lfileXio -lhdd  -lgskit -ldmakit -lgskit_toolkit -L$(PS2SDK)/ports/lib -lpng  -lz -lfreetype
+EE_GPVAL = -G0
 EE_CFLAGS += -Os -mgpopt $(EE_GPVAL) -DNEWLIB_PORT_AWARE -D_EE
 
 %.o : %.c
@@ -26,18 +26,15 @@ EE_CFLAGS += -Os -mgpopt $(EE_GPVAL) -DNEWLIB_PORT_AWARE -D_EE
 	$(EE_AS) $(EE_ASFLAGS) $< -o $@
 
 
-
-
 all:
 	$(MAKE) -C ../launcher-hdd/payload
 	../kelftool/kelftool.elf encrypt mbr ../launcher-hdd/payload/payload.bin INSTALL/MBR.XIN
 	$(MAKE) $(EE_BIN_PACKED)
 
-	
 
 clean:
 	$(MAKE) -C ../launcher-hdd/payload clean
-	rm -f $(EE_BIN) $(EE_BIN_STRIPPED) $(EE_BIN_PACKED)$(EE_BIN_REL) $(EE_OBJS)  *_irx.c *_elf.c *_xin.c *_png.s INSTALL/MBR.XIN
+	rm -f $(EE_BIN) $(EE_BIN_STRIPPED) $(EE_BIN_PACKED)$(EE_BIN_REL) $(EE_OBJS)  *_irx.c *_elf.c *_xin.c *_png.s *_ttf.s INSTALL/MBR.XIN
 	
 
 $(EE_BIN_STRIPPED): $(EE_BIN)
@@ -103,6 +100,9 @@ triangle_png.s: resources/button_triangle.png
 
 square_png.s: resources/button_square.png
 	bin2s $< $@ square_png
+
+font_ttf.s: resources/RobotoMono-Regular.ttf
+	bin2s $< $@ font_ttf
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal
