@@ -281,6 +281,11 @@ int main(int argc, char *argv[])
 			fileXioUmount("pfs0:");
 			if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
 			{
+
+				//Tests for FHDB
+				if (file_exists("pfs0:/osd/osdmain.elf"))
+					LoadElf("pfs0:/osd/osdmain.elf", hddosd_party);
+
 				//Tests for two locations of HDD-OSD
 				if (file_exists("pfs0:/osd/hosdsys.elf"))
 					LoadElf("pfs0:/osd/hosdsys.elf", hddosd_party);
@@ -317,6 +322,10 @@ int main(int argc, char *argv[])
 	//Check if HDD-OSD is installed
 	if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
 	{
+	
+		//Tests for FHDB
+		if (file_exists("pfs0:/osd/osdmain.elf"))
+			LoadElf("pfs0:/osd/osdmain.elf", hddosd_party);
 		//Tests for two locations of HDD-OSD
 		if (file_exists("pfs0:/osd/hosdsys.elf"))
 			LoadElf("pfs0:/osd/hosdsys.elf", hddosd_party);
