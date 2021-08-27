@@ -2,10 +2,8 @@ EE_BIN = main.elf
 EE_BIN_PACKED = ../SoftDev2Installer.elf
 EE_BIN_STRIPPED = main-stripped.ELF
 
-
 #IOP modules
-EE_IOP_OBJS = FILEXIO_irx.o IOMANX_irx.o SIO2MAN_irx.o PADMAN_irx.o  DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o 
-
+EE_IOP_OBJS = FILEXIO_irx.o IOMANX_irx.o SIO2MAN_irx.o PADMAN_irx.o  DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o
 
 EE_OBJS = main.o iop.o  pad.o install.o OPL_elf.o  ULE_elf.o MBR_xin.o gui.o textures.o  background_png.o background_success_png.o background_error_png.o logo_png.o cross_png.o circle_png.o square_png.o triangle_png.o $(EE_IOP_OBJS) 
 
@@ -99,7 +97,6 @@ triangle_png.s: resources/button_triangle.png
 
 square_png.s: resources/button_square.png
 	bin2s $< $@ square_png
-
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal

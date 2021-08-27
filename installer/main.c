@@ -23,8 +23,7 @@
 #include "include/gui.h"
 #include "include/textures.h"
 
-#define FONT_SIZE1 0.9F
-#define FONT_SIZE2 0.8F
+#define FONT_SIZE 0.8F
 #define SPACING 20
 
 //External variables for GS
@@ -58,10 +57,9 @@ void drawSelectionScreen(internal_texture_t backgroundTexture, char *title, char
 
 	internal_texture_t i;
 	int prevH = 0;
+	u64 WhiteFont = GS_SETREG_RGBAQ(0xFF,0xFF,0xFF,0x80,0x00);
 
-	drawBackground(backgroundTexture);
-
-	
+	drawBackground(backgroundTexture);	
 	
 
 	drawTexture(LOGO, gsGlobal->Width / 2 - gsTextures[LOGO].Width / 2, SPACING);
@@ -70,19 +68,19 @@ void drawSelectionScreen(internal_texture_t backgroundTexture, char *title, char
 
 	if (title)
 	{
-		drawFont(SPACING, SPACING + prevH, FONT_SIZE1,  0xFFFFFF, title);
+		drawFont(SPACING, SPACING + prevH, FONT_SIZE,  WhiteFont, title);
 		prevH += 3*SPACING;
 	}
 
 	for (i = CROSS; i < (nOptions + CROSS); i++)
 	{
 		drawTexture(i, SPACING, prevH);
-		drawFont(SPACING + 1.5*gsTextures[i].Width, prevH , FONT_SIZE2,  0xFFFFFF, options[i - CROSS]);
+		drawFont(SPACING + 1.5*gsTextures[i].Width, (gsTextures[i].Height-(int)(26.0f*FONT_SIZE))/2+prevH , FONT_SIZE,  WhiteFont, options[i - CROSS]);
 		prevH += gsTextures[i].Height;
 	}
 
 	drawTexture(CIRCLE, SPACING, prevH);
-	drawFont(SPACING + 1.5*gsTextures[CIRCLE].Width, prevH, FONT_SIZE2,  0xFFFFFF, "Exit");
+	drawFont(SPACING + 1.5*gsTextures[CIRCLE].Width, (gsTextures[i].Height-(int)(26.0f*FONT_SIZE))/2+prevH, FONT_SIZE,  WhiteFont, "Exit");
 
 	draw();
 }
@@ -300,13 +298,10 @@ int main(int argc, char *argv[])
 	InitPS2();
 
 	//Inits GUI
-	gui_init();
-	
-	
+	gui_init(FONT_SIZE);	
 
 	//Displays menu
-	while (menu())
-		;
+	while (menu());
 
 	//De-inits PS2
 	DeInitPS2();

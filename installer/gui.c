@@ -18,14 +18,14 @@ extern int size_font_ttf;
 
 
 
-void drawFont(int x, int y, float scale, u32 color, const char *format, ...)
+void drawFont(int x, int y, float scale, u64 color, const char *format, ...)
 {
 	char buffer[256];
-	u64 WhiteFont = GS_SETREG_RGBAQ(0xFF,0xFF,0xFF,0x80,0x00);
+
 	va_list args;
 	va_start(args, format);
 	vsprintf(buffer, format, args);
-	gsKit_fontm_print_scaled(gsGlobal, gsFontM, x, y, 0, scale, WhiteFont, buffer);
+	gsKit_fontm_print_scaled(gsGlobal, gsFontM, x, y, 0, scale, color, buffer);
 	va_end(args);
 	
 }
@@ -83,7 +83,7 @@ gsKit_clear(gsGlobal, Black);
 
 }
 
-void gui_init()
+void gui_init(float spacing)
 {
 
 	u64 Black = GS_SETREG_RGBAQ(0x00, 0x00, 0x00, 0x00, 0x00);
@@ -103,7 +103,7 @@ void gui_init()
 	gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
 	
 	gsKit_fontm_upload(gsGlobal, gsFontM);
-	gsFontM->Spacing = 0.75f;
+	gsFontM->Spacing = spacing;
 
 	gsKit_clear(gsGlobal, Black);
 
@@ -123,6 +123,6 @@ void gui_init()
 		gsTextures[i].Filter = GS_FILTER_NEAREST;
 	}
 	
-	gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 128), 0);	
+	gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);	
 	
 }
