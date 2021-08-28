@@ -238,7 +238,7 @@ int menu()
 	//State where installation is confirmed
 	case STATE_CONFIRM:
 
-		options[0] = "Install SoftDev2 on hDD";
+		options[0] = "Install SoftDev2 on HDD";
 		nOptions=1;
 		
 		if(!wasUnformatted){
