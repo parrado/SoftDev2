@@ -33,6 +33,9 @@ extern unsigned int size_ULE_elf;
 extern unsigned char MBR_xin[];
 extern unsigned int size_MBR_xin;
 
+extern unsigned char FHDB_MBR_xin[];
+extern unsigned int size_FHDB_MBR_xin;
+
 /////////////From FHDB 1.9 installer source code////////////////////
 int HDDCheckStatus(void)
 {
@@ -198,6 +201,17 @@ int InstallSoftDev2()
 				}
 		}
 	}
+
+	return result;
+}
+
+//Function to restore FHDB MBR
+int InstallFHDBMBR()
+{
+	int result;
+	
+	if ((result = injectMBRFromBuffer(FHDB_MBR_xin, size_FHDB_MBR_xin)) >= 0)
+		result = EnableHDDBooting();
 
 	return result;
 }

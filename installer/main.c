@@ -37,7 +37,8 @@ enum
 	STATE_HDD,
 	STATE_FORMAT,
 	STATE_CONFIRM,
-	STATE_INSTALLING,
+	STATE_INSTALLING_FHDB_MBR,
+	STATE_INSTALLING_SOFTDEV2,	
 	STATE_EXIT
 };
 
@@ -91,11 +92,14 @@ int menu()
 
 	int key;
 
-	int hddStatus, formatStatus = 0;
+	int hddStatus;
 
 	int ret = 1;
 
 	static int state = STATE_INIT;
+	static int wasUnformatted=0,formatStatus = 0;
+	
+	
 
 	char *options[3];
 	int nOptions;
@@ -207,6 +211,7 @@ int menu()
 		}
 		else
 		{
+			wasUnformatted=1;
 			nOptions = 1;
 			options[0] = "Continue";
 			drawSelectionScreen(BACKGROUND_SUCCESS, "FORMAT SUCCEDED", options, nOptions);
@@ -233,18 +238,31 @@ int menu()
 	//State where installation is confirmed
 	case STATE_CONFIRM:
 
-		options[0] = "Install";
-		nOptions = 1;
-		drawSelectionScreen(BACKGROUND, "SOFTDEV2 WILL BE INSTALLED ON HDD", options, nOptions);
+		options[0] = "Install SoftDev2 on hDD";
+		nOptions=1;
+		
+		if(!wasUnformatted){
+		options[1] = "Restore FreeHDBoot MBR";
+		nOptions = 2;
+		}
+		drawSelectionScreen(BACKGROUND, "PLEASE SELECT ONE OPTION", options, nOptions);
 
 		while (1)
 		{
 			key = ReadCombinedPadStatus();
 			if (key & PAD_CROSS)
 			{
-				state = STATE_INSTALLING;
+				state = STATE_INSTALLING_SOFTDEV2;
 				break;
 			}
+			
+			if(!wasUnformatted){
+			if (key & PAD_SQUARE)
+			{
+				state = STATE_INSTALLING_FHDB_MBR;
+				break;
+			}
+			}			
 			if (key & PAD_CIRCLE)
 			{
 				state = STATE_EXIT;
@@ -253,9 +271,34 @@ int menu()
 		}
 
 		break;
+//State where actual installation is carried out
+	case STATE_INSTALLING_FHDB_MBR:
 
-	//State where actual installation is carried out
-	case STATE_INSTALLING:
+		nOptions = 0;
+		drawSelectionScreen(BACKGROUND, "RESTORING FHDB MBR...", options, nOptions);
+
+		if (InstallFHDBMBR() < 0)
+			drawSelectionScreen(BACKGROUND_ERROR, "RESTORATION FAILED", options, nOptions);
+		else
+			drawSelectionScreen(BACKGROUND_SUCCESS, "RESTORATION SUCCEDED", options, nOptions);
+
+		while (1)
+		{
+			key = ReadCombinedPadStatus();
+			if (key & PAD_CIRCLE)
+			{
+				state = STATE_EXIT;
+				break;
+			}
+		}
+
+		state = STATE_EXIT;
+
+
+		break;		
+
+	//State where SoftDev2 installation is carried out
+	case STATE_INSTALLING_SOFTDEV2:
 
 		nOptions = 0;
 		drawSelectionScreen(BACKGROUND, "INSTALLING SOFTDEV2 ON HDD...", options, nOptions);

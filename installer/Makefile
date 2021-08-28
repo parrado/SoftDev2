@@ -5,7 +5,7 @@ EE_BIN_STRIPPED = main-stripped.ELF
 #IOP modules
 EE_IOP_OBJS = FILEXIO_irx.o IOMANX_irx.o SIO2MAN_irx.o PADMAN_irx.o  DEV9_irx.o ATAD_irx.o HDD_irx.o PFS_irx.o
 
-EE_OBJS = main.o iop.o  pad.o install.o OPL_elf.o  ULE_elf.o MBR_xin.o gui.o textures.o  background_png.o background_success_png.o background_error_png.o logo_png.o cross_png.o circle_png.o square_png.o triangle_png.o $(EE_IOP_OBJS) 
+EE_OBJS = main.o iop.o  pad.o install.o OPL_elf.o  ULE_elf.o MBR_xin.o FHDB_MBR_xin.o gui.o textures.o  background_png.o background_success_png.o background_error_png.o logo_png.o cross_png.o circle_png.o square_png.o triangle_png.o $(EE_IOP_OBJS) 
 
 EE_INCS := -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include  -I$(PS2SDK)/ports/include -I$(PS2SDK)/sbv/include -I$(GSKIT)/include -I$(GSKIT)/ee/dma/include -I$(GSKIT)/ee/gs/include -I$(GSKIT)/ee/toolkit/include 
 EE_LDFLAGS := -L$(PS2SDK)/ports/lib -L$(PS2SDK)/ee/lib -L$(PS2DEV)/ee/ee/lib -L$(GSKIT)/lib
@@ -72,6 +72,9 @@ ULE_elf.c:
 	
 MBR_xin.c:
 	bin2c INSTALL/MBR.XIN MBR_xin.c MBR_xin
+	
+FHDB_MBR_xin.c:
+	bin2c INSTALL/FHDB_MBR.XIN FHDB_MBR_xin.c FHDB_MBR_xin	
 	
 background_png.s: resources/bg.png
 	bin2s $< $@ background_png

@@ -240,11 +240,11 @@ int main(int argc, char *argv[])
 			}
 
 			//IF HDD-OSD requested
-			//if (strncmp(target, "pfs0:/osd", 9) == 0)
-			//{
-			//	args[1] = "BootBrowser";
-			//	argc = 2;
-			//}
+			if ((strncmp(target, "pfs0:/osd/hosdsys.elf", 21) == 0)||(strncmp(target, "pfs0:/osd100/hosdsys.elf", 24) == 0))
+			{
+				args[1] = "BootBrowser";
+				argc = 2;
+			}
 
 			if (strncmp(path, "hdd", 3) == 0 && (path[3] >= '0' && path[3] <= ':'))
 			{ /* Final IOP reset, to fill the IOP with the default modules.
