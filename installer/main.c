@@ -13,6 +13,7 @@
 #include <sifrpc.h>
 #include <stdio.h>
 #include <string.h>
+#include <io_common.h>
 #include <sys/stat.h>
 #include <stdint.h>
 #include <gsKit.h>
@@ -29,6 +30,18 @@
 //External variables for GS
 extern GSGLOBAL *gsGlobal;
 extern GSTEXTURE gsTextures[TEXTURES_COUNT];
+
+int file_exists(char filepath[])
+{
+	int fdn;
+
+	fdn = open(filepath, O_RDONLY);
+	if (fdn < 0)
+		return 0;
+	close(fdn);
+
+	return 1;
+}
 
 //States of menu Finite State Machine (FSM)
 enum
@@ -93,11 +106,13 @@ int menu()
 	int key;
 
 	int hddStatus;
+	int isOSDUpdate=0;
 
 	int ret = 1;
 
 	static int state = STATE_INIT;
-	static int wasUnformatted=0,formatStatus = 0;
+	static int formatStatus = 0;
+	char *hddosd_party = "hdd0:__system";
 	
 	
 
@@ -211,7 +226,7 @@ int menu()
 		}
 		else
 		{
-			wasUnformatted=1;
+
 			nOptions = 1;
 			options[0] = "Continue";
 			drawSelectionScreen(BACKGROUND_SUCCESS, "FORMAT SUCCEDED", options, nOptions);
@@ -237,11 +252,28 @@ int menu()
 
 	//State where installation is confirmed
 	case STATE_CONFIRM:
+	
+		if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
+			{
+
+				//Tests for FHDB
+				if (file_exists("pfs0:/osd/osdmain.elf"))
+					isOSDUpdate=1;
+
+				//Tests for two locations of HDD-OSD
+				if (file_exists("pfs0:/osd/hosdsys.elf"))
+					isOSDUpdate=1;
+
+				if (file_exists("pfs0:/osd100/hosdsys.elf"))
+					isOSDUpdate=1;
+
+				fileXioUmount("pfs0:");
+			}
 
 		options[0] = "Install SoftDev2 on HDD";
 		nOptions=1;
 		
-		if(!wasUnformatted){
+		if(isOSDUpdate){
 		options[1] = "Restore FreeHDBoot MBR";
 		nOptions = 2;
 		}
@@ -256,7 +288,7 @@ int menu()
 				break;
 			}
 			
-			if(!wasUnformatted){
+			if(isOSDUpdate){
 			if (key & PAD_SQUARE)
 			{
 				state = STATE_INSTALLING_FHDB_MBR;
