@@ -15,7 +15,7 @@ Run SoftDev2Installer.elf from your USB pendrive to install SoftDev MBR program 
 
 SoftDev2 should automatically boot from your HDD.
 
-On boot SoftDev2 will launch OPL (hdd0:__sysconf/softdev2/OPNPS2LD.ELF) by default. In addition hot keys were added which will launch corresponding application if hot key is hold during boot:
+On boot SoftDev2 will launch OPL (hdd0:__sysconf/softdev2/OPNPS2LD.ELF) by default. In addition hot keys were added which will launch corresponding application if hot key is held during boot:
 
 - CIRCLE button: uLaunchELF (hdd0:__sysconf/softdev2/ULE.ELF).
 - TRIANGLE button: OSD ROM browser (rom0:OSDSYS), FreeHDBoot (hdd0:__system/osd/osdmain.elf) or HDD-OSD browser (hdd0:__system/osd/hosdsys.elf or hdd0:__system/osd100/hosdsys.elf) if any installed.
