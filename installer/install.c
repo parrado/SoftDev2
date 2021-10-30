@@ -49,7 +49,7 @@ int HDDCheckStatus(void)
 	return status;
 }
 
-static int EnableHDDBooting(void)
+int EnableHDDBooting(void)
 {
 	int OpResult, result;
 	unsigned char OSDConfigBuffer[15];
