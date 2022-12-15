@@ -108,11 +108,34 @@ void BootError(void)
     args[0] = "BootBrowser";
     ExecOSD(1, args);
 }
-
+/* Integrity checks for HDD
+ * Under Sony design for MBR programs, the MBR was in charge of checking if S.M.A.R.T and HDD format are ok
+ * If one of these checks fail, the MBR program task is simply looking for a FSCK program on __sysrem and running it
+ * WARNING: FreeHdBoot FSCK (Special build of SP193 HDDChecker) usage is heavily encouraged
+ */
 int HDDCheckSMARTStatus(void)
 {
     return (fileXioDevctl("hdd0:", APA_DEVCTL_SMART_STAT, NULL, 0, NULL, 0) != 0);
 }
+
+int HDDCheckPartErrorStatus(void)
+{
+    return (fileXioDevctl("hdd0:", APA_DEVCTL_GET_ERROR_PART_NAME, NULL, 0, NULL, 0) != 0);
+}
+
+static void RunFSCK(void)
+{
+	 if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
+	 {
+		if (file_exists("pfs0:/fsck/fsck.elf"))
+			LoadElf( "pfs0:/fsck/fsck.elf", hddosd_party);
+		if (file_exists("pfs0:/fsck100/fsck.elf"))
+			LoadElf( "pfs0:/fsck100/fsck.elf", hddosd_party);
+ 
+         } 
+         BootError(); // Go to OSDSYS memcard browser if FSCK can't be found or if __system can't be mounted
+}
+//--------
 
 void ResetIOP()
 {
@@ -268,16 +291,15 @@ int main(int argc, char *argv[])
 	if ((romver_region_char[0] == 'J') && (bios_version <= 0x120))
 		isEarlyJap = 1;
 
+// Perform the checks in order, SMART first. why bother with filesystem damage if HDD is about to die?
         if (HDDCheckSMARTStatus())
         {
-                if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
-	        {
-			 if (file_exists("pfs0:/fsck/fsck.elf"))
-				LoadElf( "pfs0:/fsck/fsck.elf", hddosd_party);
-			 if (file_exists("pfs0:/fsck100/fsck.elf"))
-				LoadElf( "pfs0:/fsck100/fsck.elf", hddosd_party);
-                         BootError();
-                }
+		RunFSCK();
+        }
+
+	if (HDDCheckPartErrorStatus())
+        {
+		RunFSCK();
         }
 
 	if (fileXioMount("pfs0:", party, FIO_MT_RDONLY) == 0)
