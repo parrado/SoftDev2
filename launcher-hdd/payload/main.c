@@ -1,4 +1,3 @@
-
 #include <iopcontrol.h>
 #include <iopheap.h>
 #include <kernel.h>
@@ -20,7 +19,11 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/times.h>
+#include <hdd-ioctl.h>
 #include "pad.h"
+
+#define NEWLIB_PORT_AWARE
+#include <fileio.h>
 
 #define NTSC 2
 #define PAL 3
