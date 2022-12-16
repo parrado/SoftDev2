@@ -95,6 +95,8 @@ typedef struct
 	u32 flags;
 	u32 align;
 } elf_pheader_t;
+void LoadElf(char *filename, char *party);
+
 
 u8 romver[16];
 char romver_region_char[1];
