@@ -125,7 +125,7 @@ int HDDCheckPartErrorStatus(void)
     return (fileXioDevctl("hdd0:", APA_DEVCTL_GET_ERROR_PART_NAME, NULL, 0, NULL, 0) != 0);
 }
 
-static void RunFSCK(void)
+static void RunFSCK(char *hddosd_party)
 {
 	 if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
 	 {
@@ -296,12 +296,12 @@ int main(int argc, char *argv[])
 // Perform the checks in order, SMART first. why bother with filesystem damage if HDD is about to die?
         if (HDDCheckSMARTStatus())
         {
-		RunFSCK();
+		RunFSCK(hddosd_party);
         }
 
 	if (HDDCheckPartErrorStatus())
         {
-		RunFSCK();
+		RunFSCK(hddosd_party);
         }
 
 	if (fileXioMount("pfs0:", party, FIO_MT_RDONLY) == 0)
