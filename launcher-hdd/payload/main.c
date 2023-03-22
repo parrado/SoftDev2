@@ -1,4 +1,3 @@
-
 #include <iopcontrol.h>
 #include <iopheap.h>
 #include <kernel.h>
@@ -20,7 +19,11 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/times.h>
+#include <hdd-ioctl.h>
 #include "pad.h"
+
+#define NEWLIB_PORT_AWARE
+#include <fileio.h>
 
 #define NTSC 2
 #define PAL 3
@@ -31,33 +34,21 @@
 #define ELF_MAGIC 0x464c457f
 #define ELF_PT_LOAD 1
 
+#define IMPORT_IRX(_IRX) \
+	extern unsigned char _IRX[]; \
+	extern unsigned int size_#_IRX
+
 //Extern references to embedded IRX/loaders.
 extern u8 elf_loader_elf[];
 extern int elf_size_loader_elf;
-
-extern unsigned char IOMANX_irx[];
-extern unsigned int size_IOMANX_irx;
-
-extern unsigned char FILEXIO_irx[];
-extern unsigned int size_FILEXIO_irx;
-
-extern unsigned char SIO2MAN_irx[];
-extern unsigned int size_SIO2MAN_irx;
-
-extern unsigned char PADMAN_irx[];
-extern unsigned int size_PADMAN_irx;
-
-extern unsigned char DEV9_irx[];
-extern unsigned int size_DEV9_irx;
-
-extern unsigned char ATAD_irx[];
-extern unsigned int size_ATAD_irx;
-
-extern unsigned char HDD_irx[];
-extern unsigned int size_HDD_irx;
-
-extern unsigned char PFS_irx[];
-extern unsigned int size_PFS_irx;
+IMPORT_IRX(IOMANX_irx);
+IMPORT_IRX(FILEXIO_irx);
+IMPORT_IRX(SIO2MAN_irx);
+IMPORT_IRX(PADMAN_irx);
+IMPORT_IRX(DEV9_irx);
+IMPORT_IRX(ATAD_irx);
+IMPORT_IRX(HDD_irx);
+IMPORT_IRX(PFS_irx);
 
 int VMode = NTSC;
 extern void *_gp;
@@ -92,12 +83,74 @@ typedef struct
 	u32 flags;
 	u32 align;
 } elf_pheader_t;
+void LoadElf(char *filename, char *party);
+
 
 u8 romver[16];
 char romver_region_char[1];
 char ROMVersionNumStr[5];
 
 u32 bios_version = 0;
+
+static void BootError(int argc, char **argv){
+	static char *argv_BootBrowser[2]={
+		"BootBrowser",
+		NULL
+	};
+
+	fileXioDevctl("hdd:", HDIOC_DEV9OFF, NULL, 0, NULL, 0);
+
+	if(argc<2){
+		ExecOSD(1, argv_BootBrowser);
+	}
+	else{
+		ExecOSD(argc, argv);
+	}
+}
+
+/* Integrity checks for HDD
+ * Under Sony design for MBR programs, the MBR was in charge of checking if S.M.A.R.T and HDD format are ok
+ * If one of these checks fail, the MBR program task is simply looking for a FSCK program on __system and running it
+ * WARNING: FreeHdBoot FSCK (Special build of SP193 HDDChecker) usage is heavily encouraged
+ */
+static int HDDCheckSMARTStatus(void)
+{
+    return (fileXioDevctl("hdd0:", APA_DEVCTL_SMART_STAT, NULL, 0, NULL, 0) != 0);
+}
+
+static int HDDCheckPartErrorStatus(void)
+{
+	if(fileXioDevctl("hdd0:", HDIOC_GETERRORPARTNAME, NULL, 0, ErrorPartName, sizeof(ErrorPartName))!=0){
+		if(strcmp(ErrorPartName, "__system")==0) /* Do not continue if it is `__system` that has the error, since fsck is stored there. */
+			BootError(argc, argv);
+		return 1;
+	}
+}
+
+/// @return true if HDD is not connected, formatted and ready to use 
+static int HDDCheckHDIOCIssues(void)
+{
+	return (fileXioDevctl("hdd0:", HDIOC_STATUS, NULL, 0, NULL, 0)!=0);
+}
+
+static int HDDCheckSectorError(void)
+{
+	return (fileXioDevctl("hdd0:", HDIOC_GETSECTORERROR, NULL, 0, NULL, 0)!=0);
+}
+
+
+static void RunFSCK(char *hddosd_party)
+{
+	 if (fileXioMount("pfs0:", hddosd_party, FIO_MT_RDONLY) == 0)
+	 {
+		if (file_exists("pfs0:/fsck/fsck.elf"))
+			LoadElf( "pfs0:/fsck/fsck.elf", hddosd_party);
+		if (file_exists("pfs0:/fsck100/fsck.elf"))
+			LoadElf( "pfs0:/fsck100/fsck.elf", hddosd_party);
+         } 
+         BootError(); // Go to OSDSYS memcard browser if FSCK can't be found or if __system can't be mounted
+}
+//--------
 
 void ResetIOP()
 {
@@ -253,6 +306,21 @@ int main(int argc, char *argv[])
 	if ((romver_region_char[0] == 'J') && (bios_version <= 0x120))
 		isEarlyJap = 1;
 
+// Perform the checks in order
+
+	if (HDDCheckHDIOCIssues()) // HDD has connection isues or it's not formatted?
+		BootError(argc, argv);
+
+	if (HDDCheckSMARTStatus()) // S.M.A.R.T first. who cares of filesystem is HDD is nearly dead?
+		RunFSCK(hddosd_party);
+
+	if (HDDCheckSectorError()) // sector damage second...
+		RunFSCK(hddosd_party);
+
+	if (HDDCheckPartErrorStatus()) // Check for partition error. will boot FSCK unless the damaged partition is the one wich holds FSCK
+		RunFSCK(hddosd_party);
+
+
 	if (fileXioMount("pfs0:", party, FIO_MT_RDONLY) == 0)
 	{
 
@@ -336,8 +404,7 @@ int main(int argc, char *argv[])
 		fileXioUmount("pfs0:");
 	}
 
-	//If no HDD-OSD was found, then launch ROM OSD
-	LoadElf("rom0:OSDSYS", "hdd0:");
-
+	//If no HDD-OSD was found, then launch ROM OSD with error argumment, to prevent endles loop 
+	BootError(argc, argv);
 	return 0;
 }
