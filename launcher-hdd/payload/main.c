@@ -34,33 +34,21 @@
 #define ELF_MAGIC 0x464c457f
 #define ELF_PT_LOAD 1
 
+#define IMPORT_IRX(_IRX) \
+	extern unsigned char _IRX[]; \
+	extern unsigned int size_#_IRX
+
 //Extern references to embedded IRX/loaders.
 extern u8 elf_loader_elf[];
 extern int elf_size_loader_elf;
-
-extern unsigned char IOMANX_irx[];
-extern unsigned int size_IOMANX_irx;
-
-extern unsigned char FILEXIO_irx[];
-extern unsigned int size_FILEXIO_irx;
-
-extern unsigned char SIO2MAN_irx[];
-extern unsigned int size_SIO2MAN_irx;
-
-extern unsigned char PADMAN_irx[];
-extern unsigned int size_PADMAN_irx;
-
-extern unsigned char DEV9_irx[];
-extern unsigned int size_DEV9_irx;
-
-extern unsigned char ATAD_irx[];
-extern unsigned int size_ATAD_irx;
-
-extern unsigned char HDD_irx[];
-extern unsigned int size_HDD_irx;
-
-extern unsigned char PFS_irx[];
-extern unsigned int size_PFS_irx;
+IMPORT_IRX(IOMANX_irx);
+IMPORT_IRX(FILEXIO_irx);
+IMPORT_IRX(SIO2MAN_irx);
+IMPORT_IRX(PADMAN_irx);
+IMPORT_IRX(DEV9_irx);
+IMPORT_IRX(ATAD_irx);
+IMPORT_IRX(HDD_irx);
+IMPORT_IRX(PFS_irx);
 
 int VMode = NTSC;
 extern void *_gp;
